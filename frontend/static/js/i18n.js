@@ -124,6 +124,9 @@ const TRANSLATIONS = {
         'favorites.sort_by_rating': 'Sort by Rating',
         'favorites.sort_by_cost': 'Sort by Cost',
         
+        // Sidebar
+        'sidebar.all_activities': 'All Activities',
+        
         // Messages
         'message.success': 'Operation completed successfully!',
         'message.error': 'An error occurred. Please try again.',
@@ -256,6 +259,9 @@ const TRANSLATIONS = {
         'favorites.sort_by_date': '按时间排序',
         'favorites.sort_by_rating': '按评分排序',
         'favorites.sort_by_cost': '按费用排序',
+        
+        // Sidebar
+        'sidebar.all_activities': '所有活动',
         
         // Messages
         'message.success': '操作成功完成！',

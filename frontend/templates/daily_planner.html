@@ -156,33 +156,12 @@
                     </div>
                 </div>
                 
-                <!-- Recent Section -->
-                <div class="category-section collapsed" data-category="recent">
-                    <div class="category-header" onclick="toggleCategory('recent')">
-                        <div class="category-title">
-                            <i class="bi bi-clock category-icon"></i>
-                            <span class="category-name" data-i18n="sidebar.recent">Recent</span>
-                            <span class="category-count" id="recentCount">0</span>
-                        </div>
-                        <i class="bi bi-chevron-down category-toggle"></i>
-                    </div>
-                    <div class="category-content" id="recentContent">
-                        <div class="category-activities" id="recentActivities">
-                            <div class="sidebar-empty-state">
-                                <i class="bi bi-clock"></i>
-                                <h6>No Recent Activities</h6>
-                                <p>Recently viewed activities will appear here</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- All Activities (Legacy) -->
+                <!-- All Activities (Main Container) -->
                 <div class="category-section" data-category="all">
                     <div class="category-header" onclick="toggleCategory('all')">
                         <div class="category-title">
                             <i class="bi bi-collection category-icon"></i>
-                            <span class="category-name" data-i18n="voting.family_votes">All Recommended</span>
+                            <span class="category-name" data-i18n="sidebar.all_activities">All Activities</span>
                             <span class="category-count" id="allCount">0</span>
                         </div>
                         <i class="bi bi-chevron-down category-toggle"></i>
@@ -2779,34 +2758,49 @@ async function loadActivityShowcase(tripId) {
         const familyMembers = await apiRequest(`/api/family-members/?trip_id=${tripId}`);
         let allActivities = [];
         
-        // Get recommendations for this trip sorted by vote score
+        // Get ALL recommendations for this trip first
         const recommendations = await apiRequest(`/api/search/recommendations?trip_id=${tripId}&sort_by=vote_score&sort_order=desc&page_size=50`);
         
-        // Filter to show only positively voted activities (score > 0)
-        const topRecommendations = recommendations.recommendations.filter(rec => rec.vote_summary.score > 0);
+        // Strictly filter activities that have actual positive votes (score > 0 AND not null/undefined)
+        const actuallyVotedActivities = recommendations.recommendations.filter(rec => 
+            rec.vote_summary && 
+            typeof rec.vote_summary.score === 'number' && 
+            rec.vote_summary.score > 0
+        );
         
-        // Add type indicator for voted activities
-        topRecommendations.forEach(rec => {
+        // Add type indicator for ACTUALLY voted activities
+        actuallyVotedActivities.forEach(rec => {
             rec.sourceType = 'voted';
             rec.sourceLabel = `+${rec.vote_summary.score} votes`;
         });
         
-        allActivities.push(...topRecommendations);
+        // Only add actually voted activities
+        allActivities.push(...actuallyVotedActivities);
         
-        // Get favorites if family members exist
+        // Get ACTUAL favorites if family members exist
         if (familyMembers.length > 0) {
             const familyMemberId = familyMembers[0].id; // Use first family member for demo
-            const favorites = await apiRequest(`/api/favorites/list/${familyMemberId}?trip_id=${tripId}&page_size=20`);
-            
-            // Add favorites that aren't already in voted activities
-            favorites.recommendations.forEach(fav => {
-                if (!topRecommendations.find(rec => rec.id === fav.id)) {
-                    fav.sourceType = 'favorite';
-                    fav.sourceLabel = 'Favorite';
-                    allActivities.push(fav);
+            try {
+                const favorites = await apiRequest(`/api/favorites/list/${familyMemberId}?trip_id=${tripId}&page_size=20`);
+                
+                // Only add activities that are ACTUALLY favorited and not already in voted activities
+                if (favorites.recommendations && favorites.recommendations.length > 0) {
+                    favorites.recommendations.forEach(fav => {
+                        if (!actuallyVotedActivities.find(rec => rec.id === fav.id)) {
+                            fav.sourceType = 'favorite';
+                            fav.sourceLabel = 'Favorite';
+                            allActivities.push(fav);
+                        }
+                    });
                 }
-            });
+            } catch (error) {
+                console.log('No favorites found or error loading favorites:', error);
+                // Continue without favorites - this is expected if no favorites exist
+            }
         }
+        
+        console.log('Final allActivities array:', allActivities);
+        console.log('Actually voted activities:', actuallyVotedActivities.length);
         
         if (allActivities.length > 0) {
             // Show sidebar and adjust main content
@@ -2815,6 +2809,7 @@ async function loadActivityShowcase(tripId) {
             
             renderShowcaseActivities(allActivities);
         } else {
+            console.log('No activities to show - hiding sidebar');
             // Hide sidebar if no activities
             document.getElementById('showcaseSidebar').style.display = 'none';
             document.getElementById('dailyActivitiesColumn').className = 'col-lg-12';
@@ -2853,6 +2848,9 @@ function renderShowcaseActivities(recommendations) {
              data-activity-location="${rec.location_name || ''}"
              data-activity-address="${rec.address || ''}"
              data-activity-image="${rec.primary_image_url || ''}"
+             data-activity-source-type="${rec.sourceType || 'unknown'}"
+             data-activity-source-label="${rec.sourceLabel || ''}"
+             data-activity-vote-score="${rec.vote_summary ? rec.vote_summary.score : 0}"
              ondblclick="showRecommendationDetailModal(${rec.id})">
             
             <div class="activity-card-header">
@@ -3606,10 +3604,9 @@ function organizeSidebarActivities() {
     const allActivities = Array.from(document.querySelectorAll('#showcaseActivities .showcase-activity-card'));
     const favoritesContainer = document.getElementById('favoritesActivities');
     const likedContainer = document.getElementById('likedActivities');
-    const recentContainer = document.getElementById('recentActivities');
     
     // Clear containers but preserve empty states
-    [favoritesContainer, likedContainer, recentContainer].forEach((container, index) => {
+    [favoritesContainer, likedContainer].forEach((container, index) => {
         if (container) {
             const emptyStates = [
                 `<div class="sidebar-empty-state">
@@ -3621,11 +3618,6 @@ function organizeSidebarActivities() {
                     <i class="bi bi-hand-thumbs-up"></i>
                     <h6>No Liked Activities</h6>
                     <p>Vote up activities to see them here</p>
-                </div>`,
-                `<div class="sidebar-empty-state">
-                    <i class="bi bi-clock"></i>
-                    <h6>No Recent Activities</h6>
-                    <p>Recently viewed activities will appear here</p>
                 </div>`
             ];
             container.innerHTML = emptyStates[index];
@@ -3635,38 +3627,43 @@ function organizeSidebarActivities() {
     // Track if we've added any activities to each container
     let addedToFavorites = false;
     let addedToLiked = false;
-    let addedToRecent = false;
     
-    // Simulate organization (in real implementation, this would use actual user data)
+    // Use actual vote and favorite data - NO simulation or fallback logic
     allActivities.forEach((card, index) => {
         const clone = card.cloneNode(true);
         
-        // Simulate favorites (every 3rd item)
-        if (index % 3 === 0 && favoritesContainer) {
+        // Get activity data from the card attributes
+        const sourceType = card.getAttribute('data-activity-source-type');
+        const sourceLabel = card.getAttribute('data-activity-source-label');
+        const voteScore = parseInt(card.getAttribute('data-activity-vote-score') || '0');
+        
+        console.log('Processing card:', {
+            sourceType,
+            sourceLabel, 
+            voteScore,
+            title: card.querySelector('.activity-title')?.textContent
+        });
+        
+        // STRICT: Only show activities that are ACTUALLY favorites
+        if (sourceType === 'favorite' && favoritesContainer) {
             if (!addedToFavorites) {
                 favoritesContainer.innerHTML = ''; // Clear empty state
                 addedToFavorites = true;
             }
             favoritesContainer.appendChild(clone.cloneNode(true));
+            console.log('Added to favorites:', card.querySelector('.activity-title')?.textContent);
         }
         
-        // Simulate liked items (items with high votes)
-        if (index % 2 === 0 && likedContainer) {
+        // STRICT: Only show activities that have ACTUAL positive votes
+        if (sourceType === 'voted' && voteScore > 0 && likedContainer) {
             if (!addedToLiked) {
                 likedContainer.innerHTML = ''; // Clear empty state
                 addedToLiked = true;
             }
             likedContainer.appendChild(clone.cloneNode(true));
+            console.log('Added to liked:', card.querySelector('.activity-title')?.textContent);
         }
         
-        // Recent items (first 5)
-        if (index < 5 && recentContainer) {
-            if (!addedToRecent) {
-                recentContainer.innerHTML = ''; // Clear empty state
-                addedToRecent = true;
-            }
-            recentContainer.appendChild(clone.cloneNode(true));
-        }
     });
     
     // Re-setup drag events for cloned cards
@@ -3677,7 +3674,7 @@ function organizeSidebarActivities() {
 }
 
 function updateCategoryCounts() {
-    const categories = ['favorites', 'liked', 'recent', 'all'];
+    const categories = ['favorites', 'liked', 'all'];
     
     categories.forEach(category => {
         const container = document.getElementById(`${category}Activities`);

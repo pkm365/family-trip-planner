@@ -73,6 +73,11 @@ async def search_activities(
                     primary_image_url=rec.primary_image_url,
                     image_urls=rec.image_urls,
                     search_query=rec.search_query,
+                    # Chinese translation fields
+                    description_zh=rec.description_zh,
+                    cultural_notes_zh=rec.cultural_notes_zh,
+                    tips_for_chinese_travelers=rec.tips_for_chinese_travelers,
+                    quality_score=rec.quality_score,
                     trip_id=rec.trip_id,
                     discovery_date=rec.discovery_date,
                     is_active=rec.is_active,
@@ -175,6 +180,11 @@ def get_recommendations(
             primary_image_url=rec.primary_image_url,
             image_urls=rec.image_urls,
             search_query=rec.search_query,
+            # Chinese translation fields
+            description_zh=rec.description_zh,
+            cultural_notes_zh=rec.cultural_notes_zh,
+            tips_for_chinese_travelers=rec.tips_for_chinese_travelers,
+            quality_score=rec.quality_score,
             trip_id=rec.trip_id,
             discovery_date=rec.discovery_date,
             is_active=rec.is_active,

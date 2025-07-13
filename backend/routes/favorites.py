@@ -176,6 +176,11 @@ def get_family_member_favorites(
             "discovery_date": rec.discovery_date,
             "vote_summary": rec.vote_summary,
             "popularity_score": rec.popularity_score,
+            # Chinese translation fields
+            "description_zh": rec.description_zh,
+            "cultural_notes_zh": rec.cultural_notes_zh,
+            "tips_for_chinese_travelers": rec.tips_for_chinese_travelers,
+            "quality_score": rec.quality_score,
         }
         for rec in recommendations
     }

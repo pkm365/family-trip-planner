@@ -2070,6 +2070,10 @@ function setupEventHandlers() {
     document.addEventListener('languageChanged', function(event) {
         console.log('Language changed to:', event.detail.language);
         
+        // Update activity card descriptions immediately
+        updateActivityCardDescriptions();
+        updateShowcaseActivityDescriptions();
+        
         // Refresh the daily activities display to show proper language content
         if (currentTripId) {
             loadTripData(currentTripId);
@@ -4139,6 +4143,50 @@ function getChineseContentForModal(activity) {
             </div>
         </div>
     `;
+}
+
+// Helper function to update activity card descriptions when language changes
+function updateActivityCardDescriptions() {
+    const activityCards = document.querySelectorAll('.activity-card[data-activity-id]');
+    const isZh = getCurrentLanguage() === 'zh';
+    
+    activityCards.forEach(card => {
+        const englishDesc = card.getAttribute('data-activity-description') || '';
+        const chineseDesc = card.getAttribute('data-activity-description-zh') || '';
+        
+        // Use Chinese description if available and language is Chinese, otherwise use English
+        const description = (isZh && chineseDesc) ? chineseDesc : englishDesc;
+        
+        // Update the data attribute used by the detail modal
+        card.setAttribute('data-activity-description', description);
+    });
+    
+    console.log(`Updated ${activityCards.length} activity card descriptions for language: ${getCurrentLanguage()}`);
+}
+
+// Helper function to update showcase activity descriptions when language changes
+function updateShowcaseActivityDescriptions() {
+    const showcaseCards = document.querySelectorAll('.showcase-activity-card[data-activity-description-zh]');
+    const isZh = getCurrentLanguage() === 'zh';
+    
+    showcaseCards.forEach(card => {
+        const englishDesc = card.getAttribute('data-activity-description') || '';
+        const chineseDesc = card.getAttribute('data-activity-description-zh') || '';
+        
+        // Use Chinese description if available and language is Chinese, otherwise use English
+        const description = (isZh && chineseDesc) ? chineseDesc : englishDesc;
+        
+        // Update the data attribute
+        card.setAttribute('data-activity-description', description);
+        
+        // Also update any visible description text in the card
+        const descElement = card.querySelector('.activity-description');
+        if (descElement) {
+            descElement.textContent = description;
+        }
+    });
+    
+    console.log(`Updated ${showcaseCards.length} showcase activity descriptions for language: ${getCurrentLanguage()}`);
 }
 
 </script>

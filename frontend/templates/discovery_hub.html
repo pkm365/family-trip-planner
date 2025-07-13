@@ -18,6 +18,12 @@
                     <i class="bi bi-translate"></i>
                     <span id="translateButtonText">Translate Activities</span>
                 </button>
+                <!-- OpenAI Status Indicator -->
+                <div id="openaiStatus" class="d-none">
+                    <span id="openaiStatusIcon" class="badge bg-secondary">
+                        <i class="bi bi-question-circle"></i> AI Status
+                    </span>
+                </div>
             </div>
         </div>
     </div>
@@ -426,6 +432,7 @@ async function loadTrips() {
             loadVotingDashboard();
             updateFavoritesCount();
             updateTranslationButton();
+            updateOpenAIStatus();
         }
         
     } catch (error) {
@@ -444,12 +451,14 @@ function setupEventHandlers() {
             loadVotingDashboard();
             updateFavoritesCount();
             updateTranslationButton();
+            updateOpenAIStatus();
         } else {
             currentTripId = null;
             currentTrip = null;
             document.getElementById('votingDashboard').style.display = 'none';
             document.getElementById('favoritesCount').textContent = '0';
             updateTranslationButton();
+            updateOpenAIStatus();
         }
     });
     
@@ -1352,6 +1361,12 @@ async function triggerTranslation() {
                 'success'
             );
             
+            // Add a small delay to ensure database is updated before checking status
+            setTimeout(async () => {
+                console.log('Updating translation button status after delay...');
+                await updateTranslationButton();
+            }, 1000);
+            
             // Refresh current view to show translated content
             const activeTab = document.querySelector('.nav-link.active').id;
             if (activeTab === 'history-tab') {
@@ -1370,6 +1385,12 @@ async function triggerTranslation() {
                 `Translation completed with some errors. ${response.translated_count} translated, ${response.error_count} errors.`, 
                 'warning'
             );
+            
+            // Update translation button status even if there were errors (with delay)
+            setTimeout(async () => {
+                console.log('Updating translation button status after error...');
+                await updateTranslationButton();
+            }, 1000);
         }
         
     } catch (error) {
@@ -1382,6 +1403,38 @@ async function triggerTranslation() {
     }
 }
 
+// Check OpenAI API status and update indicator
+async function updateOpenAIStatus() {
+    const statusDiv = document.getElementById('openaiStatus');
+    const statusIcon = document.getElementById('openaiStatusIcon');
+    
+    try {
+        const health = await apiRequest('/api/translation/health');
+        
+        statusDiv.classList.remove('d-none');
+        
+        if (health.translation_service_working) {
+            statusIcon.className = 'badge bg-success';
+            statusIcon.innerHTML = '<i class="bi bi-check-circle"></i> AI Ready';
+            statusIcon.title = `OpenAI API working. Test: "${health.test_translation}"`;
+        } else if (health.openai_api_key_configured) {
+            statusIcon.className = 'badge bg-warning';
+            statusIcon.innerHTML = '<i class="bi bi-exclamation-triangle"></i> AI Issue';
+            statusIcon.title = `OpenAI API error: ${health.error_message}`;
+        } else {
+            statusIcon.className = 'badge bg-danger';
+            statusIcon.innerHTML = '<i class="bi bi-x-circle"></i> No AI Key';
+            statusIcon.title = 'OpenAI API key not configured';
+        }
+    } catch (error) {
+        statusDiv.classList.remove('d-none');
+        statusIcon.className = 'badge bg-danger';
+        statusIcon.innerHTML = '<i class="bi bi-x-circle"></i> AI Error';
+        statusIcon.title = `Cannot check OpenAI status: ${error.message}`;
+        console.error('Error checking OpenAI status:', error);
+    }
+}
+
 // Check translation status and update button
 async function updateTranslationButton() {
     if (!currentTripId) {
@@ -1391,6 +1444,8 @@ async function updateTranslationButton() {
     
     try {
         const status = await apiRequest(`/api/translation/status/${currentTripId}`);
+        console.log('Translation status received:', status);
+        
         const translateBtn = document.getElementById('translateButton');
         const translateText = document.getElementById('translateButtonText');
         
@@ -1404,12 +1459,16 @@ async function updateTranslationButton() {
         if (status.fully_translated) {
             translateBtn.className = 'btn btn-success';
             translateText.textContent = getCurrentLanguage() === 'zh' ? '重新翻译' : 'Retranslate';
+            console.log('Button updated to: Retranslate (fully translated)');
         } else if (status.translated_activities > 0) {
             translateBtn.className = 'btn btn-warning';
-            translateText.textContent = `${getCurrentLanguage() === 'zh' ? '翻译剩余' : 'Translate'} (${status.needs_translation} ${getCurrentLanguage() === 'zh' ? '剩余' : 'remaining'})`;
+            const newText = `${getCurrentLanguage() === 'zh' ? '翻译剩余' : 'Translate'} (${status.needs_translation} ${getCurrentLanguage() === 'zh' ? '剩余' : 'remaining'})`;
+            translateText.textContent = newText;
+            console.log(`Button updated to: ${newText}`);
         } else {
             translateBtn.className = 'btn btn-outline-primary';
             translateText.textContent = getCurrentLanguage() === 'zh' ? '翻译活动' : 'Translate Activities';
+            console.log('Button updated to: Translate Activities (no translations)');
         }
         
     } catch (error) {

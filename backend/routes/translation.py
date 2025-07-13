@@ -313,23 +313,48 @@ async def get_translation_status(
         if not trip:
             raise HTTPException(status_code=404, detail="Trip not found")
         
-        # Get all activities for trip
-        activities = db.query(ActivityRecommendation).filter(
+        # Get all activities for trip (both recommendations and regular activities)
+        recommendations = db.query(ActivityRecommendation).filter(
             ActivityRecommendation.trip_id == trip_id
         ).all()
         
-        # Count translation status
-        total_activities = len(activities)
-        translated_activities = len([
-            a for a in activities 
+        regular_activities = db.query(Activity).filter(
+            Activity.trip_id == trip_id
+        ).all()
+        
+        # Count translation status for recommendations (only count items with content to translate)
+        recommendations_with_content = [
+            a for a in recommendations 
+            if a.description and a.description.strip()
+        ]
+        total_recommendations = len(recommendations_with_content)
+        translated_recommendations = len([
+            a for a in recommendations_with_content
             if a.description_zh and a.description_zh.strip()
         ])
+        
+        # Count translation status for regular activities (only count items with content to translate)
+        activities_with_content = [
+            a for a in regular_activities 
+            if a.description and a.description.strip()
+        ]
+        total_regular = len(activities_with_content)
+        translated_regular = len([
+            a for a in activities_with_content
+            if a.description_zh and a.description_zh.strip()
+        ])
+        
+        # Combined totals
+        total_activities = total_recommendations + total_regular
+        translated_activities = translated_recommendations + translated_regular
+        
+        # Cultural content counts (only recommendations have these fields)
         has_cultural_content = len([
-            a for a in activities 
+            a for a in recommendations 
             if a.cultural_notes_zh and a.cultural_notes_zh.strip()
         ])
         has_travel_tips = len([
-            a for a in activities 
+            a for a in recommendations 
             if a.tips_for_chinese_travelers and a.tips_for_chinese_travelers.strip()
         ])
         
@@ -350,23 +375,204 @@ async def get_translation_status(
         raise HTTPException(status_code=500, detail=f"Status check failed: {str(e)}")
 
 
+@router.get("/health")
+async def translation_health_check():
+    """
+    Check if translation services are working properly.
+    
+    Tests OpenAI API connectivity and returns diagnostic information.
+    """
+    from ..services.translation_service import TranslationService
+    from ..config import settings
+    
+    health_status = {
+        "openai_api_key_configured": bool(settings.openai_api_key),
+        "openai_api_key_valid": False,
+        "translation_service_working": False,
+        "test_translation": None,
+        "error_message": None
+    }
+    
+    # Check if API key is configured
+    if not settings.openai_api_key:
+        health_status["error_message"] = "OpenAI API key not configured"
+        return health_status
+    
+    # Test OpenAI API with a simple translation
+    try:
+        async with TranslationService() as service:
+            test_text = "Hello, this is a test."
+            translation = await service._translate_with_openai(
+                test_text, "en", "zh", "test"
+            )
+            
+            if translation:
+                health_status["openai_api_key_valid"] = True
+                health_status["translation_service_working"] = True
+                health_status["test_translation"] = translation
+            else:
+                health_status["error_message"] = "OpenAI API returned no translation"
+                
+    except Exception as e:
+        health_status["error_message"] = f"OpenAI API error: {str(e)}"
+    
+    return health_status
+
+
 @router.post("/trigger/{trip_id}")
 async def trigger_trip_translation(
     trip_id: int,
     background_tasks: BackgroundTasks,
     force_retranslate: bool = False,
+    include_activities: bool = True,
+    include_recommendations: bool = True,
     db: Session = Depends(get_db)
 ):
     """
     Convenient endpoint to trigger translation for all activities in a trip.
     
-    This is a simplified wrapper around the batch translation endpoint,
-    designed for easy integration with frontend "Translate" buttons.
+    This endpoint translates both regular Activities (from daily planner) 
+    and ActivityRecommendations (from discovery hub).
     """
-    request = BatchTranslationRequest(
-        trip_id=trip_id,
-        force_retranslate=force_retranslate,
-        include_cultural_content=True
-    )
+    results = {
+        "activities": {"translated_count": 0, "error_count": 0, "errors": []},
+        "recommendations": {"translated_count": 0, "error_count": 0, "errors": []},
+        "total_translated": 0,
+        "total_errors": 0,
+        "success": True
+    }
     
-    return await batch_translate_trip_activities(request, background_tasks, db)
+    try:
+        # Translate regular Activities if requested
+        if include_activities:
+            activities_result = await translate_trip_activities(
+                trip_id, force_retranslate, db
+            )
+            results["activities"] = activities_result
+            results["total_translated"] += activities_result["translated_count"]
+            results["total_errors"] += activities_result["error_count"]
+        
+        # Translate ActivityRecommendations if requested
+        if include_recommendations:
+            request = BatchTranslationRequest(
+                trip_id=trip_id,
+                force_retranslate=force_retranslate,
+                include_cultural_content=True
+            )
+            recommendations_result = await batch_translate_trip_activities(request, background_tasks, db)
+            results["recommendations"] = {
+                "translated_count": recommendations_result.translated_count,
+                "error_count": recommendations_result.error_count,
+                "errors": recommendations_result.errors
+            }
+            results["total_translated"] += recommendations_result.translated_count
+            results["total_errors"] += recommendations_result.error_count
+        
+        # Determine overall success
+        total_items = results["total_translated"] + results["total_errors"]
+        success_rate = results["total_translated"] / total_items if total_items > 0 else 1.0
+        results["success"] = success_rate > 0.8
+        
+        results["message"] = f"Translation completed: {results['total_translated']} translated, {results['total_errors']} errors"
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Trigger translation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+
+
+async def translate_trip_activities(
+    trip_id: int,
+    force_retranslate: bool = False,
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Translate regular Activity records (from daily planner) for a trip.
+    """
+    try:
+        # Validate trip exists
+        trip = db.query(Trip).filter(Trip.id == trip_id).first()
+        if not trip:
+            raise HTTPException(status_code=404, detail="Trip not found")
+        
+        # Get activities that need translation
+        query = db.query(Activity).filter(Activity.trip_id == trip_id)
+        
+        if not force_retranslate:
+            # Only translate activities without Chinese content
+            query = query.filter(
+                (Activity.description_zh.is_(None)) |
+                (Activity.description_zh == "")
+            )
+        
+        activities = query.all()
+        
+        if not activities:
+            return {
+                "translated_count": 0,
+                "error_count": 0,
+                "errors": [],
+                "message": "No activities found that need translation"
+            }
+        
+        logger.info(f"Found {len(activities)} activities to translate")
+        
+        # Convert to dict format for translation service
+        activities_for_translation = []
+        for activity in activities:
+            activity_dict = {
+                "name": activity.name,
+                "description": activity.description or "",
+                "external_rating": None,  # Regular activities don't have external ratings
+                "external_review_count": None,
+                "types": activity.category.value if activity.category else "general",
+                "category": activity.category.value if activity.category else "general"
+            }
+            activities_for_translation.append(activity_dict)
+        
+        # Translate activities
+        translated_activities = await translation_service.batch_translate_activities(
+            db, activities_for_translation, "en", "zh"
+        )
+        
+        # Update database with translations
+        translated_count = 0
+        error_count = 0
+        errors = []
+        
+        for i, activity in enumerate(activities):
+            if i < len(translated_activities):
+                try:
+                    translated = translated_activities[i]
+                    
+                    # Update Chinese content fields
+                    if translated.get("description_zh"):
+                        activity.description_zh = translated["description_zh"]
+                    if translated.get("cultural_notes_zh"):
+                        activity.cultural_notes_zh = translated["cultural_notes_zh"]
+                    if translated.get("tips_for_chinese_travelers"):
+                        activity.tips_for_chinese_travelers = translated["tips_for_chinese_travelers"]
+                    
+                    translated_count += 1
+                    logger.info(f"Updated activity {activity.id} with Chinese content")
+                    
+                except Exception as e:
+                    error_count += 1
+                    error_msg = f"Failed to update activity {activity.id}: {str(e)}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+        
+        # Commit changes
+        db.commit()
+        
+        return {
+            "translated_count": translated_count,
+            "error_count": error_count,
+            "errors": errors,
+            "message": f"Successfully translated {translated_count} activities"
+        }
+        
+    except Exception as e:
+        logger.error(f"Activity translation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Activity translation failed: {str(e)}")

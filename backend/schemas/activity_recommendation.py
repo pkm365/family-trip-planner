@@ -48,6 +48,20 @@ class ActivityRecommendationBase(BaseModel):
     search_query: Optional[str] = Field(
         None, description="Search query that found this recommendation"
     )
+    
+    # Chinese translation fields
+    description_zh: Optional[str] = Field(
+        None, description="Chinese description of the activity"
+    )
+    cultural_notes_zh: Optional[str] = Field(
+        None, description="Cultural notes and context in Chinese"
+    )
+    tips_for_chinese_travelers: Optional[str] = Field(
+        None, description="Tips specifically for Chinese travelers"
+    )
+    quality_score: Optional[float] = Field(
+        None, description="Quality score for translation prioritization", ge=0, le=100
+    )
 
 
 class ActivityRecommendationCreate(ActivityRecommendationBase):
@@ -82,6 +96,20 @@ class ActivityRecommendationUpdate(BaseModel):
     image_urls: Optional[str] = Field(None, description="Additional image URLs as JSON")
     is_active: Optional[bool] = Field(
         None, description="Whether recommendation is active"
+    )
+    
+    # Chinese translation fields
+    description_zh: Optional[str] = Field(
+        None, description="Chinese description of the activity"
+    )
+    cultural_notes_zh: Optional[str] = Field(
+        None, description="Cultural notes and context in Chinese"
+    )
+    tips_for_chinese_travelers: Optional[str] = Field(
+        None, description="Tips specifically for Chinese travelers"
+    )
+    quality_score: Optional[float] = Field(
+        None, description="Quality score for translation prioritization", ge=0, le=100
     )
 
 

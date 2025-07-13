@@ -105,6 +105,40 @@
     </div>
 </div>
 
+<!-- Family Corner Section -->
+<div id="familyCorner" class="d-none mb-4">
+    <div class="family-corner-card">
+        <div class="family-header mb-3">
+            <h5 class="family-title">
+                <i class="bi bi-people-fill text-warm-primary me-2"></i>
+                <span data-i18n="family.our_journey">Our Family Journey</span>
+                <span class="family-count-badge" id="familyCount">0</span>
+            </h5>
+            <button class="btn btn-warm-outline btn-sm" data-bs-toggle="modal" data-bs-target="#familyMemberModal" onclick="resetFamilyMemberModal()">
+                <i class="bi bi-person-plus-fill"></i>
+                <span data-i18n="family.add_member">Add Family Member</span>
+            </button>
+        </div>
+        <div class="family-members-container" id="familyMembersContainer">
+            <!-- Family member cards will be dynamically loaded here -->
+        </div>
+        
+        <!-- Family Wishlist Summary -->
+        <div class="family-wishlist-summary mt-3">
+            <h6 class="wishlist-title">
+                <i class="bi bi-star-fill text-warm-success me-2"></i>
+                <span data-i18n="family.wishes_dreams">Family Wishes & Dreams</span>
+            </h6>
+            <div class="wishlist-items" id="familyWishlistSummary">
+                <div class="text-muted text-center">
+                    <i class="bi bi-heart" style="font-size: 1.5rem;"></i>
+                    <p class="mb-0" data-i18n="family.no_wishes">No family wishes added yet</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Recent Activities and Weather -->
 <div class="row">
     <div class="col-lg-8 mb-4">
@@ -203,6 +237,99 @@
         </div>
     </div>
 </div>
+
+<!-- Family Member Modal -->
+<div class="modal fade" id="familyMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="familyModalTitle">
+                    <i class="bi bi-person-plus-fill text-warm-primary me-2"></i>
+                    <span data-i18n="family.add_member">Add Family Member</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="familyMemberForm">
+                    <!-- Photo Upload Section -->
+                    <div class="mb-4 text-center">
+                        <div class="family-photo-upload">
+                            <div class="photo-preview" id="photoPreview">
+                                <i class="bi bi-person-circle" style="font-size: 4rem; color: var(--warm-secondary);"></i>
+                            </div>
+                            <div class="photo-upload-controls mt-2">
+                                <input type="file" id="memberPhoto" accept="image/*" class="d-none">
+                                <button type="button" class="btn btn-warm-outline btn-sm" onclick="selectPhoto()">
+                                    <i class="bi bi-camera"></i>
+                                    <span data-i18n="family.add_photo">Add Photo</span>
+                                </button>
+                                <div class="image-info mt-1" id="imageInfo" style="display: none;">
+                                    <small class="text-muted"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="memberName" class="form-label" data-i18n="family.member_name">Name</label> *
+                            <input type="text" class="form-control" id="memberName" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="memberAge" class="form-label" data-i18n="family.member_age">Age</label>
+                            <input type="number" class="form-control" id="memberAge" min="0" max="120">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberRole" class="form-label" data-i18n="family.member_role">Role</label> *
+                        <select class="form-select" id="memberRole" required>
+                            <option value="" data-i18n="family.select_role">Select role...</option>
+                            <option value="parent" data-i18n="family.role_parent">Parent</option>
+                            <option value="child" data-i18n="family.role_child">Child</option>
+                            <option value="adult" data-i18n="family.role_adult">Adult</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberInterests" class="form-label" data-i18n="family.member_interests">Interests & Hobbies</label>
+                        <textarea class="form-control" id="memberInterests" rows="2" data-i18n-attr="placeholder:family.interests_placeholder"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberWishlist" class="form-label" data-i18n="family.member_wishes">Travel Wishes</label>
+                        <textarea class="form-control" id="memberWishlist" rows="3" data-i18n-attr="placeholder:family.wishes_placeholder"></textarea>
+                        <small class="form-text text-muted" data-i18n="family.wishes_help">Enter each wish on a new line</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="memberDietary" class="form-label" data-i18n="family.member_dietary">Dietary Restrictions</label>
+                            <input type="text" class="form-control" id="memberDietary" data-i18n-attr="placeholder:family.dietary_placeholder">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="memberMobility" class="form-label" data-i18n="family.member_mobility">Mobility Needs</label>
+                            <input type="text" class="form-control" id="memberMobility" data-i18n-attr="placeholder:family.mobility_placeholder">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberNotes" class="form-label" data-i18n="family.member_notes">Additional Notes</label>
+                        <textarea class="form-control" id="memberNotes" rows="2" data-i18n-attr="placeholder:family.notes_placeholder"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> <span data-i18n="common.cancel">Cancel</span>
+                </button>
+                <button type="button" class="btn btn-warm-primary" id="saveMemberBtn" onclick="saveFamilyMember()">
+                    <i class="bi bi-person-check-fill"></i> <span data-i18n="family.add_member">Add Member</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -241,6 +368,7 @@ async function loadDashboardData() {
         if (trips.length > 0) {
             loadRecentActivities(trips[0].id);
             loadWeatherData(trips[0].id);
+            loadFamilyMembers(trips[0].id);
         }
         
     } catch (error) {
@@ -453,6 +581,432 @@ function getCategoryColor(category) {
 
 function viewTrip(tripId) {
     window.location.href = `/daily-planner?trip_id=${tripId}`;
+}
+
+// Global variables for family member operations
+let currentTripId = null;
+let currentEditingMemberId = null;
+let selectedImageFile = null;
+
+async function loadFamilyMembers(tripId) {
+    try {
+        currentTripId = tripId;
+        const members = await apiRequest(`/api/family-members/?trip_id=${tripId}`);
+        const container = document.getElementById('familyMembersContainer');
+        const familyCorner = document.getElementById('familyCorner');
+        const familyCount = document.getElementById('familyCount');
+        
+        if (members.length === 0) {
+            familyCorner.classList.add('d-none');
+            return;
+        }
+        
+        familyCorner.classList.remove('d-none');
+        familyCount.textContent = members.length;
+        
+        container.innerHTML = members.map(member => createFamilyMemberCard(member)).join('');
+        
+        // Load family wishlist
+        loadFamilyWishlist(members);
+        
+    } catch (error) {
+        console.error('Error loading family members:', error);
+    }
+}
+
+function createFamilyMemberCard(member) {
+    const roleColors = {
+        'parent': 'warm-primary',
+        'child': 'warm-accent', 
+        'adult': 'warm-secondary'
+    };
+    
+    const roleColor = roleColors[member.role] || 'warm-primary';
+    const initial = member.name.charAt(0).toUpperCase();
+    
+    // Default avatar URLs for different roles
+    const defaultAvatars = {
+        'parent': 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+        'child': 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
+        'adult': 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+    };
+    
+    // Create avatar content (image, default avatar, or initial)
+    let avatarContent;
+    if (member.profile_image_url) {
+        avatarContent = `<img src="${member.profile_image_url}" alt="${member.name}" onerror="this.onerror=null; this.src='${defaultAvatars[member.role] || defaultAvatars.adult}'">`;
+    } else if (defaultAvatars[member.role]) {
+        avatarContent = `<img src="${defaultAvatars[member.role]}" alt="${member.name}" onerror="this.onerror=null; this.textContent='${initial}'">`;
+    } else {
+        avatarContent = initial;
+    }
+    
+    return `
+        <div class="family-member-card" data-member-id="${member.id}">
+            <div class="family-member-avatar bg-${roleColor}">
+                ${avatarContent}
+            </div>
+            <div class="family-member-info">
+                <h6 class="family-member-name">${member.name} ${member.age ? `(${member.age})` : ''}</h6>
+                <span class="family-member-role badge bg-${roleColor}">${t('family.role_' + member.role)}</span>
+            </div>
+            <div class="family-member-actions">
+                <button class="btn btn-warm-outline btn-sm" onclick="editFamilyMember(${member.id})">
+                    <i class="bi bi-pencil-fill"></i> <span data-i18n="common.edit">Edit</span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function loadFamilyWishlist(members) {
+    const container = document.getElementById('familyWishlistSummary');
+    let allWishes = [];
+    
+    members.forEach(member => {
+        if (member.wishlist_items) {
+            try {
+                const wishes = JSON.parse(member.wishlist_items);
+                if (Array.isArray(wishes)) {
+                    wishes.forEach(wish => {
+                        if (wish.trim()) {
+                            allWishes.push({
+                                text: wish.trim(),
+                                member: member.name
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                // If JSON parsing fails, treat as plain text
+                if (member.wishlist_items.trim()) {
+                    allWishes.push({
+                        text: member.wishlist_items.trim(),
+                        member: member.name
+                    });
+                }
+            }
+        }
+    });
+    
+    if (allWishes.length === 0) {
+        container.innerHTML = `
+            <div class="text-muted text-center">
+                <i class="bi bi-heart" style="font-size: 1.5rem;"></i>
+                <p class="mb-0">No family wishes added yet</p>
+            </div>
+        `;
+    } else {
+        container.innerHTML = allWishes.slice(0, 3).map(wish => `
+            <div class="wishlist-item">
+                <i class="bi bi-star-fill text-warm-success me-2"></i>
+                <span class="wishlist-text">${wish.text}</span>
+                <small class="text-muted ms-2">- ${wish.member}</small>
+            </div>
+        `).join('');
+        
+        if (allWishes.length > 3) {
+            container.innerHTML += `<small class="text-muted">And ${allWishes.length - 3} more wishes...</small>`;
+        }
+    }
+}
+
+async function saveFamilyMember() {
+    try {
+        const form = document.getElementById('familyMemberForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const name = document.getElementById('memberName').value.trim();
+        const age = document.getElementById('memberAge').value;
+        const role = document.getElementById('memberRole').value;
+        const interests = document.getElementById('memberInterests').value.trim();
+        const wishlist = document.getElementById('memberWishlist').value.trim();
+        
+        let profileImageUrl = null;
+        
+        // Handle image upload if selected
+        if (selectedImageFile) {
+            try {
+                showLoading(true, 'Processing image...');
+                profileImageUrl = await uploadImage(selectedImageFile);
+            } catch (imageError) {
+                showLoading(false);
+                showAlert('Image upload failed: ' + imageError.message, 'danger');
+                return;
+            }
+        }
+        
+        const memberData = {
+            name: name,
+            age: age ? parseInt(age) : null,
+            role: role,
+            interests: interests || null,
+            wishlist_items: wishlist ? JSON.stringify(wishlist.split('\n').filter(w => w.trim())) : null,
+            dietary_restrictions: document.getElementById('memberDietary').value.trim() || null,
+            mobility_needs: document.getElementById('memberMobility').value.trim() || null,
+            notes: document.getElementById('memberNotes').value.trim() || null,
+            profile_image_url: profileImageUrl
+        };
+        
+        // Add trip_id for new members
+        if (!currentEditingMemberId) {
+            memberData.trip_id = currentTripId;
+        }
+        
+        let response;
+        let successMessage;
+        
+        showLoading(true, 'Saving family member...');
+        
+        if (currentEditingMemberId) {
+            // Update existing member
+            response = await apiRequest(`/api/family-members/${currentEditingMemberId}`, {
+                method: 'PUT',
+                body: JSON.stringify(memberData)
+            });
+            successMessage = t('family.update_success');
+        } else {
+            // Create new member
+            response = await apiRequest('/api/family-members/', {
+                method: 'POST',
+                body: JSON.stringify(memberData)
+            });
+            successMessage = `${name} ${t('family.add_success')}`;
+        }
+        
+        showLoading(false);
+        
+        if (response) {
+            showAlert(successMessage, 'success');
+            
+            // Close modal and reset form
+            const modal = bootstrap.Modal.getInstance(document.getElementById('familyMemberModal'));
+            modal.hide();
+            form.reset();
+            resetFamilyMemberModal();
+            
+            // Reload family members and dashboard stats
+            loadFamilyMembers(currentTripId);
+            loadDashboardData();
+        }
+        
+    } catch (error) {
+        showLoading(false);
+        console.error('Error saving family member:', error);
+        
+        // Provide more specific error messages
+        let errorMessage = 'Failed to save family member';
+        if (error.message) {
+            if (error.message.includes('413') || error.message.includes('Payload Too Large')) {
+                errorMessage = 'The image you selected is too large. Please choose a smaller image (max 2MB).';
+            } else if (error.message.includes('400') || error.message.includes('Bad Request')) {
+                errorMessage = 'Invalid data provided. Please check all fields and try again.';
+            } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+                errorMessage = 'Server error occurred. Please try again later or contact support.';
+            } else {
+                errorMessage = 'Failed to save family member: ' + error.message;
+            }
+        }
+        
+        showAlert(errorMessage, 'danger');
+    }
+}
+
+async function uploadImage(file) {
+    // Validate file size (max 2MB)
+    const maxSizeInBytes = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSizeInBytes) {
+        throw new Error(`Image file is too large. Maximum size is 2MB, but selected file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`);
+    }
+    
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        throw new Error(`Invalid file type. Allowed types: JPEG, PNG, GIF, WebP. Selected: ${file.type}`);
+    }
+    
+    // For now, convert to base64 data URL for simple storage
+    // In a production app, you'd upload to a cloud service like S3 or Cloudinary
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const result = e.target.result;
+                // Additional size check for base64 (should be ~1.33x original)
+                const base64Size = result.length * 0.75; // Approximate original size
+                if (base64Size > maxSizeInBytes) {
+                    reject(new Error('Processed image is too large for storage'));
+                    return;
+                }
+                resolve(result);
+            } catch (error) {
+                reject(new Error('Failed to process image: ' + error.message));
+            }
+        };
+        reader.onerror = function(e) {
+            reject(new Error('Failed to read image file'));
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Photo selection functionality
+function selectPhoto() {
+    document.getElementById('memberPhoto').click();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle photo selection
+    document.getElementById('memberPhoto').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file before processing
+            const maxSizeInBytes = 2 * 1024 * 1024; // 2MB
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            
+            if (file.size > maxSizeInBytes) {
+                showAlert(`Image file is too large. Maximum size is 2MB, but selected file is ${(file.size / 1024 / 1024).toFixed(1)}MB.`, 'danger');
+                e.target.value = ''; // Clear the file input
+                return;
+            }
+            
+            if (!allowedTypes.includes(file.type)) {
+                showAlert(`Invalid file type. Allowed types: JPEG, PNG, GIF, WebP. Selected: ${file.type}`, 'danger');
+                e.target.value = ''; // Clear the file input
+                return;
+            }
+            
+            selectedImageFile = file;
+            
+            // Show file info
+            const imageInfo = document.getElementById('imageInfo');
+            const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
+            imageInfo.querySelector('small').textContent = `${file.name} (${fileSizeMB}MB)`;
+            imageInfo.style.display = 'block';
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('photoPreview');
+                preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.onerror = function() {
+                showAlert('Failed to read the selected image file.', 'danger');
+                e.target.value = ''; // Clear the file input
+                imageInfo.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+            
+            // Update button text
+            const photoBtn = document.querySelector('[onclick="selectPhoto()"] span');
+            if (photoBtn) {
+                photoBtn.textContent = t('family.change_photo');
+            }
+        }
+    });
+});
+
+async function editFamilyMember(memberId) {
+    try {
+        // Fetch member data
+        const member = await apiRequest(`/api/family-members/${memberId}`);
+        
+        // Store current editing member ID
+        currentEditingMemberId = memberId;
+        
+        // Update modal title and button
+        document.getElementById('familyModalTitle').innerHTML = `
+            <i class="bi bi-person-gear text-warm-primary me-2"></i>
+            <span data-i18n="family.edit_member">Edit Family Member</span>
+        `;
+        document.getElementById('saveMemberBtn').innerHTML = `
+            <i class="bi bi-person-check-fill"></i> <span data-i18n="common.save">Save</span>
+        `;
+        
+        // Populate form with existing data
+        document.getElementById('memberName').value = member.name || '';
+        document.getElementById('memberAge').value = member.age || '';
+        document.getElementById('memberRole').value = member.role || '';
+        document.getElementById('memberInterests').value = member.interests || '';
+        document.getElementById('memberDietary').value = member.dietary_restrictions || '';
+        document.getElementById('memberMobility').value = member.mobility_needs || '';
+        document.getElementById('memberNotes').value = member.notes || '';
+        
+        // Handle wishlist items
+        if (member.wishlist_items) {
+            try {
+                const wishes = JSON.parse(member.wishlist_items);
+                if (Array.isArray(wishes)) {
+                    document.getElementById('memberWishlist').value = wishes.join('\n');
+                } else {
+                    document.getElementById('memberWishlist').value = member.wishlist_items;
+                }
+            } catch (e) {
+                document.getElementById('memberWishlist').value = member.wishlist_items || '';
+            }
+        } else {
+            document.getElementById('memberWishlist').value = '';
+        }
+        
+        // Handle profile image
+        const photoPreview = document.getElementById('photoPreview');
+        if (member.profile_image_url) {
+            photoPreview.innerHTML = `<img src="${member.profile_image_url}" alt="${member.name}">`;
+            const photoBtn = document.querySelector('[onclick="selectPhoto()"] span');
+            if (photoBtn) {
+                photoBtn.textContent = t('family.change_photo');
+            }
+        } else {
+            photoPreview.innerHTML = `<i class="bi bi-person-circle" style="font-size: 4rem; color: var(--warm-secondary);"></i>`;
+            const photoBtn = document.querySelector('[onclick="selectPhoto()"] span');
+            if (photoBtn) {
+                photoBtn.textContent = t('family.add_photo');
+            }
+        }
+        
+        // Reset selected image file
+        selectedImageFile = null;
+        
+        // Update translations and show modal
+        updateTranslations();
+        const modal = new bootstrap.Modal(document.getElementById('familyMemberModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error loading family member for editing:', error);
+        showAlert('Failed to load family member data', 'danger');
+    }
+}
+
+function resetFamilyMemberModal() {
+    // Reset modal for adding new member
+    currentEditingMemberId = null;
+    selectedImageFile = null;
+    
+    // Reset modal title and button
+    document.getElementById('familyModalTitle').innerHTML = `
+        <i class="bi bi-person-plus-fill text-warm-primary me-2"></i>
+        <span data-i18n="family.add_member">Add Family Member</span>
+    `;
+    document.getElementById('saveMemberBtn').innerHTML = `
+        <i class="bi bi-person-check-fill"></i> <span data-i18n="family.add_member">Add Member</span>
+    `;
+    
+    // Reset photo preview
+    document.getElementById('photoPreview').innerHTML = `<i class="bi bi-person-circle" style="font-size: 4rem; color: var(--warm-secondary);"></i>`;
+    document.getElementById('imageInfo').style.display = 'none';
+    const photoBtn = document.querySelector('[onclick="selectPhoto()"] span');
+    if (photoBtn) {
+        photoBtn.textContent = t('family.add_photo');
+    }
+    
+    // Reset form
+    document.getElementById('familyMemberForm').reset();
+    
+    updateTranslations();
 }
 </script>
 {% endblock %}

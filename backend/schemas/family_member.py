@@ -41,6 +41,10 @@ class FamilyMemberBase(BaseModel):
         None, description="Additional notes about the family member"
     )
 
+    profile_image_url: Optional[str] = Field(
+        None, max_length=1000, description="Profile image URL for the family member"
+    )
+
 
 class FamilyMemberCreate(FamilyMemberBase):
     """Schema for creating a new family member."""
@@ -72,6 +76,10 @@ class FamilyMemberUpdate(BaseModel):
     wishlist_items: Optional[str] = Field(None, description="Wishlist items")
 
     notes: Optional[str] = Field(None, description="Notes")
+
+    profile_image_url: Optional[str] = Field(
+        None, max_length=1000, description="Profile image URL"
+    )
 
 
 class FamilyMemberResponse(FamilyMemberBase):

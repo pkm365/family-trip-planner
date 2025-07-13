@@ -36,8 +36,8 @@ async def create_activity(
         db.commit()
         db.refresh(db_activity)
 
-        # Enrich with coordinates if address provided
-        if db_activity.address:
+        # Enrich with coordinates if needed (missing coordinates but has address or location_name)
+        if (not db_activity.latitude or not db_activity.longitude) and (db_activity.address or db_activity.location_name):
             db_activity = await trip_service.enrich_activity_with_coordinates(
                 db, db_activity
             )
@@ -52,7 +52,7 @@ async def create_activity(
         )
 
 
-@router.get("/", response_model=List[ActivitySummary])
+@router.get("/", response_model=List[ActivityResponse])
 def get_activities(
     db: DatabaseSession,
     trip_id: int = Query(None, description="Filter by trip ID"),
@@ -62,7 +62,7 @@ def get_activities(
     priority: Priority = Query(None, description="Filter by priority"),
     skip: int = 0,
     limit: int = 100,
-) -> List[ActivitySummary]:
+) -> List[ActivityResponse]:
     """
     Get activities with optional filtering.
 
@@ -101,7 +101,7 @@ def get_activities(
         .all()
     )
 
-    return [ActivitySummary.model_validate(activity) for activity in activities]
+    return [ActivityResponse.model_validate(activity) for activity in activities]
 
 
 @router.get("/{activity_id}", response_model=ActivityResponse)

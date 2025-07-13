@@ -96,7 +96,11 @@ async def read_root(request: Request):
 async def daily_planner(request: Request):
     """Serve the daily planner page."""
     return templates.TemplateResponse(
-        "daily_planner.html", {"request": request, "title": "Daily Planner"}
+        "daily_planner.html", {
+            "request": request, 
+            "title": "Daily Planner",
+            "google_places_api_key": settings.google_places_api_key
+        }
     )
 
 

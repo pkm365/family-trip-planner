@@ -2,6 +2,11 @@
 
 {% block title %}Daily Planner - Family Trip Planner{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <script src="https://maps.googleapis.com/maps/api/js?key={{ google_places_api_key|default('') }}&libraries=places" async defer></script>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">
@@ -56,36 +61,6 @@
     </div>
 </div>
 
-<!-- Family Corner Section -->
-<div id="familyCorner" class="d-none mb-4">
-    <div class="family-corner-card">
-        <div class="family-header mb-3">
-            <h5 class="family-title">
-                <i class="bi bi-people-fill text-warm-primary me-2"></i>
-                Our Family Journey
-                <span class="family-count-badge" id="familyCount">0</span>
-            </h5>
-            <button class="btn btn-warm-outline btn-sm" data-bs-toggle="modal" data-bs-target="#familyMemberModal">
-                <i class="bi bi-person-plus-fill"></i>
-                Add Family Member
-            </button>
-        </div>
-        <div class="family-members-container" id="familyMembersContainer">
-            <!-- Family member cards will be dynamically loaded here -->
-        </div>
-        
-        <!-- Family Wishlist Summary -->
-        <div class="family-wishlist-summary mt-3">
-            <h6 class="wishlist-title">
-                <i class="bi bi-star-fill text-warm-accent me-2"></i>
-                Family Wishes & Dreams
-            </h6>
-            <div class="wishlist-items" id="familyWishlistSummary">
-                <!-- Wishlist items will be populated here -->
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- Drag-to-Delete Zone (Hidden by default) -->
 <div id="deleteZone" class="alert alert-danger d-none position-fixed" style="top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; min-width: 300px; text-align: center; box-shadow: 0 8px 32px rgba(220, 53, 69, 0.3);">
@@ -277,8 +252,9 @@
                             <input type="text" class="form-control" id="locationName">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="address" class="form-label" data-i18n="activity.address">Address</label>
-                            <input type="text" class="form-control" id="address">
+                            <label for="address" class="form-label" data-i18n="activity.address">Address <small class="text-muted">(Required for map display)</small></label>
+                            <input type="text" class="form-control" id="address" placeholder="Enter address for map marker...">
+                            <div class="form-text">Activities need an address to appear on the map</div>
                         </div>
                     </div>
                     
@@ -2291,15 +2267,36 @@ function renderTimeSlot(title, activities, date) {
                                             </ul>
                                         </div>
                                     </div>
-                                    ${activity.estimated_cost > 0 ? 
-                                        `<div class="small text-success fw-bold">$${activity.estimated_cost}</div>` : 
-                                        `<div class="small text-muted">Free</div>`
-                                    }
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        ${activity.estimated_cost > 0 ? 
+                                            `<div class="small text-success fw-bold">$${activity.estimated_cost}</div>` : 
+                                            `<div class="small text-muted">Free</div>`
+                                        }
+                                        ${activity.latitude && activity.longitude ? 
+                                            `<div class="small text-success" title="Will appear on map">
+                                                <i class="bi bi-map-fill" style="font-size: 0.7rem;"></i>
+                                            </div>` : 
+                                            (activity.address ? 
+                                                `<div class="small text-warning" title="Address provided but not geocoded">
+                                                    <i class="bi bi-map" style="font-size: 0.7rem;"></i>
+                                                </div>` : 
+                                                `<div class="small text-danger" title="No location - won't appear on map">
+                                                    <i class="bi bi-geo" style="font-size: 0.7rem;"></i>
+                                                </div>`
+                                            )
+                                        }
+                                    </div>
                                     ${activity.location_name ? 
                                         `<div class="small text-muted text-truncate mt-1">
                                             <i class="bi bi-geo-alt" style="font-size: 0.7rem;"></i> ${activity.location_name}
+                                            ${activity.address ? `<span class="text-muted"> - ${activity.address}</span>` : ''}
                                          </div>` : 
-                                        ''
+                                        (activity.address ? 
+                                            `<div class="small text-muted text-truncate mt-1">
+                                                <i class="bi bi-geo-alt" style="font-size: 0.7rem;"></i> ${activity.address}
+                                            </div>` : 
+                                            ''
+                                        )
                                     }
                                 </div>
                             </div>
@@ -2325,6 +2322,24 @@ async function createActivity() {
         return;
     }
     
+    const address = document.getElementById('address').value.trim();
+    let latitude = null;
+    let longitude = null;
+    
+    // Geocode address or location name if provided
+    const locationToGeocode = address || locationName;
+    if (locationToGeocode) {
+        try {
+            showLoading(true, 'Geocoding location...');
+            const geocodeResult = await apiRequest(`/api/geocoding/geocode?address=${encodeURIComponent(locationToGeocode)}`);
+            latitude = geocodeResult.latitude;
+            longitude = geocodeResult.longitude;
+        } catch (error) {
+            console.warn('Geocoding failed:', error);
+            // Allow creation without coordinates - will show warning
+        }
+    }
+    
     const activityData = {
         trip_id: currentTripId,
         name: document.getElementById('activityName').value,
@@ -2334,7 +2349,9 @@ async function createActivity() {
         category: document.getElementById('category').value,
         priority: document.getElementById('priority').value,
         location_name: document.getElementById('locationName').value,
-        address: document.getElementById('address').value,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
         estimated_cost: parseFloat(document.getElementById('estimatedCost').value) || 0,
         notes: document.getElementById('notes').value
     };
@@ -2421,6 +2438,25 @@ async function updateActivity() {
     }
     
     const activityId = document.getElementById('editActivityId').value;
+    const address = document.getElementById('editAddress').value.trim();
+    const locationName = document.getElementById('editLocationName').value.trim();
+    let latitude = null;
+    let longitude = null;
+    
+    // Geocode address or location name if provided
+    const locationToGeocode = address || locationName;
+    if (locationToGeocode) {
+        try {
+            showLoading(true, 'Geocoding location...');
+            const geocodeResult = await apiRequest(`/api/geocoding/geocode?address=${encodeURIComponent(locationToGeocode)}`);
+            latitude = geocodeResult.latitude;
+            longitude = geocodeResult.longitude;
+        } catch (error) {
+            console.warn('Geocoding failed:', error);
+            // Allow update without coordinates - will show warning
+        }
+    }
+    
     const activityData = {
         name: document.getElementById('editActivityName').value,
         description: document.getElementById('editDescription').value,
@@ -2429,7 +2465,9 @@ async function updateActivity() {
         category: document.getElementById('editCategory').value,
         priority: document.getElementById('editPriority').value,
         location_name: document.getElementById('editLocationName').value,
-        address: document.getElementById('editAddress').value,
+        address: address,
+        latitude: latitude,
+        longitude: longitude,
         estimated_cost: parseFloat(document.getElementById('editEstimatedCost').value) || 0,
         notes: document.getElementById('editNotes').value
     };
@@ -2688,6 +2726,8 @@ async function handleDrop(event) {
                 category: validCategory,
                 location_name: draggedActivity.location_name || '',
                 address: draggedActivity.address || '',
+                latitude: draggedActivity.latitude ? parseFloat(draggedActivity.latitude) : null,
+                longitude: draggedActivity.longitude ? parseFloat(draggedActivity.longitude) : null,
                 estimated_cost: parseFloat(draggedActivity.estimated_cost) || 0,
                 primary_image_url: draggedActivity.primary_image_url || '',
                 activity_date: newDate,
@@ -2848,6 +2888,8 @@ function renderShowcaseActivities(recommendations) {
              data-activity-cost="${rec.estimated_cost || 0}"
              data-activity-location="${rec.location_name || ''}"
              data-activity-address="${rec.address || ''}"
+             data-activity-latitude="${rec.latitude || ''}"
+             data-activity-longitude="${rec.longitude || ''}"
              data-activity-image="${rec.primary_image_url || ''}"
              data-activity-source-type="${rec.sourceType || 'unknown'}"
              data-activity-source-label="${rec.sourceLabel || ''}"
@@ -2876,7 +2918,11 @@ function renderShowcaseActivities(recommendations) {
                     <i class="bi bi-currency-dollar me-1"></i>
                     ${rec.estimated_cost > 0 ? `$${rec.estimated_cost}` : 'Free'}
                 </div>
-                <div class="activity-source">
+                <div class="d-flex align-items-center gap-2">
+                    ${rec.address ? 
+                        `<i class="bi bi-map-fill text-success" title="Has location - will appear on map"></i>` : 
+                        `<i class="bi bi-geo text-muted" title="No location - won't appear on map"></i>`
+                    }
                     ${rec.sourceType === 'favorite' ? 
                         '<i class="bi bi-heart-fill text-warm-primary" title="Family Favorite"></i>' : 
                         '<i class="bi bi-hand-thumbs-up-fill text-warm-secondary" title="Family Liked"></i>'
@@ -3051,6 +3097,8 @@ function handleShowcaseDragStart(event) {
         estimated_cost: parseFloat(card.getAttribute('data-activity-cost')) || 0,
         location_name: card.getAttribute('data-activity-location'),
         address: card.getAttribute('data-activity-address'),
+        latitude: card.getAttribute('data-activity-latitude') || null,
+        longitude: card.getAttribute('data-activity-longitude') || null,
         primary_image_url: card.getAttribute('data-activity-image')
     };
     
@@ -3958,5 +4006,57 @@ async function saveFamilyMember() {
         showAlert('Failed to add family member: ' + error.message, 'danger');
     }
 }
+
+// Google Places Autocomplete for address fields
+function initializeAddressAutocomplete() {
+    // Check if Google Places API is available
+    if (typeof google === 'undefined' || !google.maps) {
+        console.warn('Google Places API not available');
+        return;
+    }
+    
+    const addressInputs = [
+        document.getElementById('address'),
+        document.getElementById('editAddress')
+    ];
+    
+    addressInputs.forEach(input => {
+        if (input) {
+            const autocomplete = new google.maps.places.Autocomplete(input, {
+                types: ['address'],
+                fields: ['formatted_address', 'name', 'geometry']
+            });
+            
+            autocomplete.addListener('place_changed', function() {
+                const place = autocomplete.getPlace();
+                if (place.formatted_address) {
+                    input.value = place.formatted_address;
+                }
+            });
+        }
+    });
+}
+
+// Initialize autocomplete when Google API is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if Google API is ready immediately, or wait for it
+    if (typeof google !== 'undefined' && google.maps) {
+        initializeAddressAutocomplete();
+    } else {
+        // Poll for Google API availability
+        const checkGoogleAPI = setInterval(function() {
+            if (typeof google !== 'undefined' && google.maps) {
+                initializeAddressAutocomplete();
+                clearInterval(checkGoogleAPI);
+            }
+        }, 500);
+        
+        // Stop checking after 10 seconds
+        setTimeout(function() {
+            clearInterval(checkGoogleAPI);
+        }, 10000);
+    }
+});
+
 </script>
 {% endblock %}

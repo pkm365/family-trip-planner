@@ -54,6 +54,11 @@ class FamilyMember(BaseModel):
     # Notes
     notes = Column(Text, nullable=True, doc="Additional notes about the family member")
 
+    # Profile image
+    profile_image_url = Column(
+        String(1000), nullable=True, doc="Profile image URL for the family member"
+    )
+
     # Relationships
     trip = relationship(
         "Trip",

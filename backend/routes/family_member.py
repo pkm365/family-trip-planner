@@ -35,6 +35,13 @@ def create_family_member(
         Created family member object
     """
     try:
+        # Validate image URL size if provided
+        if member_data.profile_image_url and len(member_data.profile_image_url) > 1000000:  # 1MB limit for URL
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Profile image is too large. Please choose a smaller image (max 2MB)."
+            )
+        
         # Create new family member instance
         db_member = FamilyMember(**member_data.model_dump())
         db.add(db_member)
@@ -43,11 +50,20 @@ def create_family_member(
 
         return FamilyMemberResponse.model_validate(db_member)
 
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
+        error_msg = str(e)
+        if "String too long" in error_msg or "Data too long" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Profile image is too large. Please choose a smaller image."
+            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error creating family member: {str(e)}",
+            detail=f"Error creating family member: {error_msg}",
         )
 
 
@@ -134,6 +150,13 @@ def update_family_member(
     try:
         # Update only provided fields
         update_data = member_update.model_dump(exclude_unset=True)
+        
+        # Validate image URL size if provided
+        if 'profile_image_url' in update_data and update_data['profile_image_url'] and len(update_data['profile_image_url']) > 1000000:  # 1MB limit for URL
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Profile image is too large. Please choose a smaller image (max 2MB)."
+            )
 
         for field, value in update_data.items():
             setattr(member, field, value)
@@ -143,11 +166,20 @@ def update_family_member(
 
         return FamilyMemberResponse.model_validate(member)
 
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
+        error_msg = str(e)
+        if "String too long" in error_msg or "Data too long" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail="Profile image is too large. Please choose a smaller image."
+            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error updating family member: {str(e)}",
+            detail=f"Error updating family member: {error_msg}",
         )
 
 

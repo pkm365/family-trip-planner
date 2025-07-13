@@ -53,6 +53,7 @@ class TripService:
     ) -> Activity:
         """
         Geocode activity address and update coordinates.
+        Falls back to location_name if address is not provided.
 
         Args:
             db: Database session
@@ -62,16 +63,38 @@ class TripService:
             Updated activity object with coordinates
         """
         if not activity.latitude or not activity.longitude:
-            if activity.address:
+            # Try geocoding with address first, then fall back to location_name
+            geocoded = False
+            
+            # First try address if available
+            if activity.address and activity.address.strip():
                 lat, lon = await geocoding_service.geocode_address(activity.address)
-
                 if lat != 0.0 and lon != 0.0:
                     activity.latitude = lat
                     activity.longitude = lon
-                    db.commit()
+                    geocoded = True
                     logger.info(
-                        f"Updated activity {activity.id} with coordinates ({lat}, {lon})"
+                        f"Updated activity {activity.id} with coordinates ({lat}, {lon}) from address: '{activity.address}'"
                     )
+            
+            # If address failed, try location_name BUT KEEP the original address
+            if not geocoded and activity.location_name and activity.location_name.strip():
+                lat, lon = await geocoding_service.geocode_address(activity.location_name)
+                if lat != 0.0 and lon != 0.0:
+                    activity.latitude = lat
+                    activity.longitude = lon
+                    geocoded = True
+                    # KEEP the original address for display - don't clear it
+                    logger.info(
+                        f"Updated activity {activity.id} with coordinates ({lat}, {lon}) from location_name: '{activity.location_name}' (kept original address for display)"
+                    )
+            
+            if geocoded:
+                db.commit()
+            else:
+                logger.warning(
+                    f"Failed to geocode activity {activity.id}. Address: '{activity.address}', Location: '{activity.location_name}'"
+                )
 
         return activity
 

@@ -18,14 +18,14 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 async def get_trip_by_id(trip_id: int, db: DatabaseSession) -> Trip:
     """
     Dependency to get a trip by ID with proper error handling.
-    
+
     Args:
         trip_id: Trip identifier
         db: Database session
-        
+
     Returns:
         Trip object
-        
+
     Raises:
         HTTPException: If trip not found
     """
@@ -33,7 +33,7 @@ async def get_trip_by_id(trip_id: int, db: DatabaseSession) -> Trip:
     if not trip:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Trip with id {trip_id} not found"
+            detail=f"Trip with id {trip_id} not found",
         )
     return trip
 

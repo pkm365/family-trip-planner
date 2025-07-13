@@ -24,7 +24,7 @@ def cleanup() -> None:
     try:
         query = db.query(ActivityRecommendation).filter(
             ActivityRecommendation.primary_image_url.is_(None),
-            ActivityRecommendation.description.is_(None)
+            ActivityRecommendation.description.is_(None),
         )
         count = query.count()
         if count == 0:
@@ -47,4 +47,4 @@ def cleanup() -> None:
 
 
 if __name__ == "__main__":
-    cleanup() 
+    cleanup()

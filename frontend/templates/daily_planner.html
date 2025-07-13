@@ -2240,6 +2240,7 @@ function renderTimeSlot(title, activities, date) {
                          data-activity-location="${activity.location_name || ''}"
                          data-activity-address="${activity.address || ''}"
                          data-activity-cost="${activity.estimated_cost || 0}"
+                         data-activity-image="${activity.primary_image_url || ''}"
                          ondblclick="showActivityDetailModal(${activity.id})"
                          style="cursor: grab;">
                         <div class="card-body p-2">
@@ -3153,14 +3154,17 @@ async function showActivityDetailModal(activityId) {
                 address: activityCard.getAttribute('data-activity-address'),
                 estimated_cost: parseFloat(activityCard.getAttribute('data-activity-cost')) || 0,
                 activity_date: activityCard.getAttribute('data-activity-date'),
-                time_slot: activityCard.getAttribute('data-activity-timeslot')
+                time_slot: activityCard.getAttribute('data-activity-timeslot'),
+                primary_image_url: activityCard.getAttribute('data-activity-image')
             };
         }
         
         // Also fetch full details from API
         try {
             const fullActivity = await apiRequest(`/api/activities/${activityId}`);
+            console.log('Full activity from API:', fullActivity);
             activity = { ...activity, ...fullActivity };
+            console.log('Merged activity data:', activity);
         } catch (error) {
             console.log('Could not fetch full activity details, using card data');
         }
@@ -3193,6 +3197,14 @@ function showDetailModal(item, type) {
     const editBtn = document.getElementById('editActivityFromDetailBtn');
     
     title.textContent = item.name;
+    
+    // Debug logging to see what image URL we have
+    console.log('showDetailModal called with:', {
+        type: type,
+        item: item,
+        primary_image_url: item.primary_image_url,
+        hasImage: !!item.primary_image_url
+    });
     
     // Generate hero image section with fixed dual image issue
     const heroImageHtml = item.primary_image_url ? 
@@ -3455,68 +3467,6 @@ async function handleDeleteZoneDrop() {
     }
 }
 
-// ===== DROPDOWN POSITIONING FIX =====
-// Fix dropdown positioning when using fixed positioning
-function setupDropdownPositioning() {
-    // Handle Bootstrap dropdown show events
-    document.addEventListener('show.bs.dropdown', function (event) {
-        const dropdownToggle = event.target;
-        const dropdownMenu = dropdownToggle.nextElementSibling;
-        
-        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
-            // Calculate position relative to the toggle button
-            const rect = dropdownToggle.getBoundingClientRect();
-            const menuHeight = 120; // Approximate height of 3 items
-            const viewportHeight = window.innerHeight;
-            
-            // Position dropdown to the right and below the button by default
-            let top = rect.bottom + 4;
-            let left = rect.right - 150; // Align right edge of menu with button
-            
-            // If dropdown would go below viewport, position it above the button
-            if (top + menuHeight > viewportHeight - 20) {
-                top = rect.top - menuHeight - 4;
-            }
-            
-            // Ensure dropdown doesn't go off left edge of screen
-            if (left < 10) {
-                left = 10;
-            }
-            
-            // Apply positioning
-            dropdownMenu.style.position = 'fixed';
-            dropdownMenu.style.top = `${top}px`;
-            dropdownMenu.style.left = `${left}px`;
-            dropdownMenu.style.right = 'auto';
-            dropdownMenu.style.bottom = 'auto';
-            dropdownMenu.style.transform = 'none';
-            dropdownMenu.style.zIndex = '9999';
-            
-            console.log(`Positioned dropdown at top: ${top}, left: ${left}`);
-        }
-    });
-    
-    // Clean up positioning when dropdown is hidden
-    document.addEventListener('hide.bs.dropdown', function (event) {
-        const dropdownToggle = event.target;
-        const dropdownMenu = dropdownToggle.nextElementSibling;
-        
-        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
-            // Reset positioning
-            dropdownMenu.style.position = '';
-            dropdownMenu.style.top = '';
-            dropdownMenu.style.left = '';
-            dropdownMenu.style.right = '';
-            dropdownMenu.style.bottom = '';
-            dropdownMenu.style.transform = '';
-        }
-    });
-}
-
-// Initialize dropdown positioning on page load
-document.addEventListener('DOMContentLoaded', function() {
-    setupDropdownPositioning();
-});
 
 // ===== ENHANCED SIDEBAR FUNCTIONALITY =====
 

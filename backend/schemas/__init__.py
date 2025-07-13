@@ -4,13 +4,7 @@ Pydantic schemas package.
 Exports all request/response validation schemas for easy importing.
 """
 
-from .trip import (
-    TripBase,
-    TripCreate,
-    TripUpdate,
-    TripResponse,
-    TripSummary
-)
+from .trip import TripBase, TripCreate, TripUpdate, TripResponse, TripSummary
 
 from .activity import (
     ActivityBase,
@@ -28,17 +22,16 @@ from .family_member import (
     FamilyMemberResponse,
     FamilyMemberSummary,
     WishlistItem,
-    FamilyPreferences
+    FamilyPreferences,
 )
 
 __all__ = [
     # Trip schemas
     "TripBase",
     "TripCreate",
-    "TripUpdate", 
+    "TripUpdate",
     "TripResponse",
     "TripSummary",
-    
     # Activity schemas
     "ActivityBase",
     "ActivityCreate",
@@ -46,7 +39,6 @@ __all__ = [
     "ActivityResponse",
     "ActivitySummary",
     # "DailyActivities",
-    
     # Family member schemas
     "FamilyMemberBase",
     "FamilyMemberCreate",

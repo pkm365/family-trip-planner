@@ -1897,6 +1897,91 @@ footer {
 }
 
 /* ================================
+   DROPDOWN MENU FIX - COMPREHENSIVE SOLUTION  
+   ================================ */
+
+/* Fix overflow issues for dropdowns - ALL containers must allow overflow */
+.drop-zone,
+.daily-card,
+.card-body,
+.activity-card,
+.col-md-4,
+.row,
+#dailyActivitiesContainer,
+.daily-card .card-body,
+.time-slot-header,
+.category-content {
+    overflow: visible !important;
+}
+
+/* Standardize dropdown z-index hierarchy */
+.dropdown-menu {
+    z-index: 1050 !important;
+    position: absolute !important;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 0.5rem !important;
+}
+
+/* Ensure dropdown containers have proper positioning context */
+.activity-card .dropdown {
+    position: relative !important;
+}
+
+/* Force proper dropdown positioning */
+.dropdown-menu.show {
+    position: absolute !important;
+    transform: none !important;
+    top: 100% !important;
+    left: auto !important;
+    right: 0 !important;
+}
+
+/* Enhanced dropdown styling for better visibility */
+.activity-card .dropdown-menu {
+    min-width: 160px !important;
+    padding: 0.5rem 0 !important;
+    margin: 0.125rem 0 0 !important;
+    background-color: #fff !important;
+    background-clip: padding-box !important;
+}
+
+.activity-card .dropdown-menu .dropdown-item {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.875rem !important;
+    color: #495057 !important;
+    text-decoration: none !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    clear: both !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+    white-space: nowrap !important;
+}
+
+.activity-card .dropdown-menu .dropdown-item:hover,
+.activity-card .dropdown-menu .dropdown-item:focus {
+    color: #16181b !important;
+    background-color: #f8f9fa !important;
+}
+
+.activity-card .dropdown-menu .dropdown-item.text-danger:hover {
+    color: #dc3545 !important;
+    background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.activity-card .dropdown-menu .dropdown-divider {
+    height: 0 !important;
+    margin: 0.5rem 0 !important;
+    overflow: hidden !important;
+    border-top: 1px solid #e9ecef !important;
+}
+
+/* ================================
    WARM ACTIVITY DETAIL MODAL STYLES
    ================================ */
 

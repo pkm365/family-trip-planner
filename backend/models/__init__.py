@@ -14,12 +14,12 @@ from .activity_favorite import ActivityFavorite
 
 __all__ = [
     "Base",
-    "BaseModel", 
+    "BaseModel",
     "TimestampMixin",
     "Trip",
     "Activity",
     "TimeSlot",
-    "ActivityCategory", 
+    "ActivityCategory",
     "Priority",
     "FamilyMember",
     "MemberRole",

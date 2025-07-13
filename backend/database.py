@@ -15,22 +15,20 @@ from .models.base import Base
 # CRITICAL: check_same_thread=False required for SQLite with FastAPI
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
-    echo=settings.debug  # Enable SQL logging in debug mode
+    connect_args={"check_same_thread": False}
+    if "sqlite" in settings.database_url
+    else {},
+    echo=settings.debug,  # Enable SQL logging in debug mode
 )
 
 # Create session factory
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def create_tables() -> None:
     """
     Create all database tables.
-    
+
     Should be called once during application startup.
     """
     Base.metadata.create_all(bind=engine)
@@ -39,10 +37,10 @@ def create_tables() -> None:
 def get_db() -> Generator[Session, None, None]:
     """
     Database session dependency for FastAPI.
-    
+
     Yields:
         Session: SQLAlchemy database session
-        
+
     Example:
         @app.get("/trips/")
         def get_trips(db: Session = Depends(get_db)):
@@ -58,11 +56,11 @@ def get_db() -> Generator[Session, None, None]:
 def init_db() -> None:
     """
     Initialize database with tables and optional sample data.
-    
+
     Call this function during application startup.
     """
     create_tables()
-    
+
     # Optionally add sample data in development mode
     if settings.debug:
         _create_sample_data()
@@ -70,15 +68,23 @@ def init_db() -> None:
 
 def _create_sample_data() -> None:
     """Create sample data for development and testing."""
-    from .models import Trip, Activity, FamilyMember, TimeSlot, ActivityCategory, Priority, MemberRole
+    from .models import (
+        Trip,
+        Activity,
+        FamilyMember,
+        TimeSlot,
+        ActivityCategory,
+        Priority,
+        MemberRole,
+    )
     from datetime import date
-    
+
     db = SessionLocal()
     try:
         # Check if we already have data
         if db.query(Trip).first():
             return
-            
+
         # Create sample trip
         sample_trip = Trip(
             name="Osaka Family Trip",
@@ -88,11 +94,11 @@ def _create_sample_data() -> None:
             accommodation_address="大阪市浪速区幸町1丁目2-24",
             accommodation_lat=34.6937,
             accommodation_lon=135.5023,
-            total_budget=5000.0
+            total_budget=5000.0,
         )
         db.add(sample_trip)
         db.flush()  # Get the trip ID
-        
+
         # Create sample family members
         family_members = [
             FamilyMember(
@@ -100,14 +106,14 @@ def _create_sample_data() -> None:
                 role=MemberRole.PARENT,
                 age=35,
                 trip_id=sample_trip.id,
-                interests="History, Technology, Food"
+                interests="History, Technology, Food",
             ),
             FamilyMember(
-                name="Mom", 
+                name="Mom",
                 role=MemberRole.PARENT,
                 age=33,
                 trip_id=sample_trip.id,
-                interests="Shopping, Culture, Photography"
+                interests="Shopping, Culture, Photography",
             ),
             FamilyMember(
                 name="Daughter",
@@ -115,13 +121,13 @@ def _create_sample_data() -> None:
                 age=8,
                 trip_id=sample_trip.id,
                 interests="Animals, Parks, Sweet treats",
-                dietary_restrictions="No spicy food"
-            )
+                dietary_restrictions="No spicy food",
+            ),
         ]
-        
+
         for member in family_members:
             db.add(member)
-        
+
         # Create sample activities
         sample_activities = [
             Activity(
@@ -133,7 +139,7 @@ def _create_sample_data() -> None:
                 category=ActivityCategory.SIGHTSEEING,
                 priority=Priority.MUST_DO,
                 location_name="Osaka Castle",
-                estimated_cost=600.0
+                estimated_cost=600.0,
             ),
             Activity(
                 name="Dotonbori Food Tour",
@@ -144,16 +150,16 @@ def _create_sample_data() -> None:
                 category=ActivityCategory.FOOD,
                 priority=Priority.MUST_DO,
                 location_name="Dotonbori District",
-                estimated_cost=3000.0
-            )
+                estimated_cost=3000.0,
+            ),
         ]
-        
+
         for activity in sample_activities:
             db.add(activity)
-            
+
         db.commit()
         print("Sample data created successfully!")
-        
+
     except Exception as e:
         print(f"Error creating sample data: {e}")
         db.rollback()

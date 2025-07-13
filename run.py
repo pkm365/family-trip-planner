@@ -15,10 +15,11 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+
 def main():
     """
     Run the development server with appropriate settings.
-    
+
     The server will:
     - Enable hot reloading for development
     - Use debug mode for detailed error messages
@@ -27,7 +28,7 @@ def main():
     """
     # Set development environment
     os.environ.setdefault("DEBUG", "True")
-    
+
     # Configure uvicorn for development
     uvicorn.run(
         "backend.main:app",
@@ -35,8 +36,9 @@ def main():
         port=8000,
         reload=True,
         reload_dirs=[str(project_root / "backend")],
-        log_level="info"
+        log_level="info",
     )
+
 
 if __name__ == "__main__":
     main()

@@ -29,6 +29,9 @@ COPY run.py alembic.ini ./
 # 创建数据目录（用于SQLite）
 RUN mkdir -p /app/data
 
+# 复制现有数据库到容器中（包含翻译数据）
+COPY trip_planner.db /app/data/trip_planner.db
+
 # 暴露端口
 EXPOSE 8000
 

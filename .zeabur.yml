@@ -1,0 +1,16 @@
+services:
+  family-trip-planner:
+    name: family-trip-planner
+    source:
+      type: git
+    port: 8000
+    env:
+      - DEBUG=false
+      - DATABASE_URL=sqlite:///./data/trip_planner.db
+      - SECRET_KEY=${SECRET_KEY}
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ALLOWED_ORIGINS=https://*.zeabur.app,https://family-trip-planner.zeabur.app
+    volumes:
+      - /app/data

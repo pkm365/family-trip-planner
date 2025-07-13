@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # Database configuration
     database_url: str = Field(
-        default="sqlite:///./trip_planner.db",
+        default="sqlite:///./data/trip_planner.db",
         env="DATABASE_URL",
         description="Database connection URL",
     )

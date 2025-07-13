@@ -12,6 +12,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件
@@ -24,7 +25,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 COPY alembic/ ./alembic/
-COPY run.py alembic.ini ./
+COPY run.py start_production.py alembic.ini ./
 
 # 创建数据目录（用于SQLite）
 RUN mkdir -p /app/data
@@ -36,8 +37,8 @@ COPY database_export.sql /app/database_export.sql
 EXPOSE 8000
 
 # 健康检查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # 启动命令
-CMD ["python", "run.py"]
+CMD ["python", "start_production.py"]

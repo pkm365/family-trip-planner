@@ -45,14 +45,14 @@ class Settings(BaseSettings):
     )
 
     secret_key: str = Field(
-        default="dev-secret-key-change-in-production",
+        default="production-secret-key-zeabur-2024",
         env="SECRET_KEY",
         description="Secret key for session management",
     )
 
     # CORS settings
     allowed_origins: str = Field(
-        default="http://localhost:3000,http://localhost:8080,http://127.0.0.1:8000",
+        default="https://*.zeabur.app,http://localhost:3000,http://localhost:8080,http://127.0.0.1:8000",
         env="ALLOWED_ORIGINS",
         description="Comma-separated list of allowed CORS origins",
     )

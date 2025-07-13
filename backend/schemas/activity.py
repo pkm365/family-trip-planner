@@ -51,6 +51,19 @@ class ActivityBase(BaseModel):
         None, max_length=1000, description="Primary image URL for the activity"
     )
 
+    # Chinese translation fields
+    description_zh: Optional[str] = Field(
+        None, description="Chinese description of the activity"
+    )
+
+    cultural_notes_zh: Optional[str] = Field(
+        None, description="Cultural notes and context in Chinese"
+    )
+
+    tips_for_chinese_travelers: Optional[str] = Field(
+        None, description="Tips specifically for Chinese travelers"
+    )
+
 
 class ActivityCreate(ActivityBase):
     """Schema for creating a new activity."""
@@ -89,6 +102,19 @@ class ActivityUpdate(BaseModel):
 
     primary_image_url: Optional[str] = Field(
         None, max_length=1000, description="Primary image URL"
+    )
+
+    # Chinese translation fields
+    description_zh: Optional[str] = Field(
+        None, description="Chinese description of the activity"
+    )
+
+    cultural_notes_zh: Optional[str] = Field(
+        None, description="Cultural notes and context in Chinese"
+    )
+
+    tips_for_chinese_travelers: Optional[str] = Field(
+        None, description="Tips specifically for Chinese travelers"
     )
 
 

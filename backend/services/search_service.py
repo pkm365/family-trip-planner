@@ -7,6 +7,7 @@ Currently supports Google Places API with extensible architecture for additional
 
 import aiohttp
 import json
+import logging
 from typing import List, Dict, Any, Optional, Tuple
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -14,6 +15,9 @@ from datetime import datetime
 from ..models import ActivityRecommendation, Trip
 from ..config import settings
 from ..services.geocoding_service import geocoding_service
+from ..services.translation_service import translation_service
+
+logger = logging.getLogger(__name__)
 
 
 class SearchService:
@@ -53,8 +57,33 @@ class SearchService:
         radius_km: float = 5.0,
         limit: int = 20,
     ) -> Tuple[List[ActivityRecommendation], Dict[str, Any]]:
+        """Legacy search method - use smart_search_activities for better results."""
+        return await self.smart_search_activities(
+            query, trip_id, db, category, budget_min, budget_max, radius_km, limit
+        )
+
+    async def smart_search_activities(
+        self,
+        query: str,
+        trip_id: int,
+        db: Session,
+        category: Optional[str] = None,
+        budget_min: Optional[float] = None,
+        budget_max: Optional[float] = None,
+        radius_km: float = 5.0,
+        limit: int = 15,
+        min_quality_score: int = 60,
+        include_chinese_content: bool = True,
+    ) -> Tuple[List[ActivityRecommendation], Dict[str, Any]]:
         """
-        Search for activity recommendations based on query and filters.
+        Smart search for high-quality activity recommendations with Chinese content.
+
+        This method implements intelligent filtering and translation:
+        1. Searches external APIs for activities
+        2. Scores activities for quality (rating, reviews, family-friendly)
+        3. Filters to only high-quality results
+        4. Translates to Chinese for better user experience
+        5. Returns top results with cultural context
 
         Args:
             query: Search query (e.g., "restaurants in Tokyo", "family activities")
@@ -64,7 +93,9 @@ class SearchService:
             budget_min: Minimum budget filter
             budget_max: Maximum budget filter
             radius_km: Search radius in kilometers
-            limit: Maximum number of results
+            limit: Maximum number of quality results to return (default 15)
+            min_quality_score: Minimum quality score threshold (default 60)
+            include_chinese_content: Whether to include Chinese translations
 
         Returns:
             Tuple of (recommendations list, search metadata)
@@ -78,7 +109,8 @@ class SearchService:
         if not self.session:
             self.session = aiohttp.ClientSession()
 
-        # Search multiple sources
+        # Search multiple sources with expanded results for filtering
+        raw_limit = limit * 3  # Get 3x more results for quality filtering
         all_results = []
         search_metadata = {
             "query": query,
@@ -86,13 +118,17 @@ class SearchService:
             "sources_searched": [],
             "results_count_by_source": {},
             "search_timestamp": datetime.utcnow().isoformat(),
+            "quality_filtering": {
+                "min_score_threshold": min_quality_score,
+                "requested_limit": limit
+            }
         }
 
-        # Google Places search
+        # Google Places search with expanded limit
         if self.google_places_api_key:
             try:
                 google_results = await self._search_google_places(
-                    query, trip, radius_km, limit
+                    query, trip, radius_km, raw_limit
                 )
                 all_results.extend(google_results)
                 search_metadata["sources_searched"].append("google_places")
@@ -102,25 +138,89 @@ class SearchService:
             except Exception as e:
                 print(f"Google Places search failed: {e}")
 
-        # Mock results for development (remove when real API is available)
+        # Mock results for development with quality scoring
         if not all_results and not self.google_places_api_key:
-            mock_results = self._generate_mock_results(query, trip_id, limit)
+            mock_results = self._generate_mock_results(query, trip_id, raw_limit)
             all_results.extend(mock_results)
             search_metadata["sources_searched"].append("mock_data")
             search_metadata["results_count_by_source"]["mock_data"] = len(mock_results)
 
-        # Filter results
+        # 1. Score all results for quality
+        scored_results = []
+        for result in all_results:
+            quality_score = translation_service.calculate_quality_score(
+                result,
+                result.get("external_rating"),
+                result.get("external_review_count")
+            )
+            result["quality_score"] = quality_score
+            scored_results.append(result)
+
+        # 2. Filter by quality score
+        quality_filtered = [r for r in scored_results if r["quality_score"] >= min_quality_score]
+        
+        # 3. Sort by quality score (highest first)
+        quality_filtered.sort(key=lambda x: x["quality_score"], reverse=True)
+        
+        # 4. Apply budget and category filters to quality results
         filtered_results = self._filter_results(
-            all_results, category, budget_min, budget_max
+            quality_filtered, category, budget_min, budget_max
         )
 
-        # Deduplicate and save to database
+        # 5. Take top quality results for translation
+        top_quality_results = filtered_results[:limit]
+        
+        search_metadata["quality_filtering"]["raw_results"] = len(all_results)
+        search_metadata["quality_filtering"]["quality_passed"] = len(quality_filtered)
+        search_metadata["quality_filtering"]["final_selected"] = len(top_quality_results)
+
+        # 6. Save to database with quality scores
         recommendations = await self._save_recommendations(
-            filtered_results, trip_id, query, db
+            top_quality_results, trip_id, query, db
         )
+
+        # 7. Add Chinese content if requested
+        if include_chinese_content and recommendations:
+            try:
+                # Convert to dict format for translation
+                activities_for_translation = []
+                for rec in recommendations:
+                    activity_dict = {
+                        "name": rec.name,
+                        "description": rec.description,
+                        "external_rating": rec.external_rating,
+                        "external_review_count": rec.external_review_count,
+                        "types": rec.category,
+                        "category": rec.category
+                    }
+                    activities_for_translation.append(activity_dict)
+                
+                # Batch translate all activities
+                translated_activities = await translation_service.batch_translate_activities(
+                    db, activities_for_translation
+                )
+                
+                # Update recommendations with Chinese content
+                for i, rec in enumerate(recommendations):
+                    if i < len(translated_activities):
+                        translated = translated_activities[i]
+                        if translated.get("description_zh"):
+                            rec.description_zh = translated["description_zh"]
+                        if translated.get("cultural_notes_zh"):
+                            rec.cultural_notes_zh = translated["cultural_notes_zh"]
+                        if translated.get("tips_for_chinese_travelers"):
+                            rec.tips_for_chinese_travelers = translated["tips_for_chinese_travelers"]
+                
+                # Commit Chinese content updates
+                db.commit()
+                search_metadata["chinese_content_added"] = True
+                
+            except Exception as e:
+                logger.error(f"Error adding Chinese content: {e}")
+                search_metadata["chinese_content_error"] = str(e)
 
         search_metadata["final_count"] = len(recommendations)
-        return recommendations[:limit], search_metadata
+        return recommendations, search_metadata
 
     async def _search_google_places(
         self, query: str, trip: Trip, radius_km: float, limit: int
@@ -440,6 +540,7 @@ class SearchService:
                 image_urls=json.dumps(result.get("image_urls", []))
                 if result.get("image_urls")
                 else None,
+                quality_score=result.get("quality_score", 0),  # Save quality score
                 search_query=search_query,
                 discovery_date=datetime.utcnow(),
             )

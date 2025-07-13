@@ -24,6 +24,7 @@ from .routes import (
 from .routes.search import router as search_router
 from .routes.voting import router as voting_router
 from .routes.favorites import router as favorites_router
+from .routes.translation import router as translation_router
 
 # Configure logging
 logging.basicConfig(
@@ -82,6 +83,7 @@ app.include_router(geocoding_router)
 app.include_router(search_router)
 app.include_router(voting_router)
 app.include_router(favorites_router)
+app.include_router(translation_router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -142,6 +144,7 @@ async def api_status():
     weather_available = bool(settings.openweather_api_key)
     geocoding_available = True  # Nominatim doesn't require API key
     search_available = bool(settings.google_places_api_key)
+    translation_available = bool(settings.openai_api_key)
 
     return {
         "api_version": "1.0.0",
@@ -157,6 +160,11 @@ async def api_status():
             "search": {
                 "available": search_available,
                 "google_places_key_configured": search_available,
+            },
+            "translation": {
+                "available": translation_available,
+                "openai_key_configured": translation_available,
+                "supported_languages": ["en", "zh"],
             },
         },
         "database": {"type": "SQLite", "url": settings.database_url},

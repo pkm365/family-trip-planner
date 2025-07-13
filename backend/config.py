@@ -31,6 +31,12 @@ class Settings(BaseSettings):
         description="Google Places API key",
     )
 
+    openai_api_key: str = Field(
+        default="",
+        env="OPENAI_API_KEY",
+        description="OpenAI API key for translation and AI assistant",
+    )
+
     # Application settings
     debug: bool = Field(
         default=False,

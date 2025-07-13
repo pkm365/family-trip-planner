@@ -10,10 +10,14 @@
                 <i class="bi bi-compass"></i>
                 <span data-i18n="discovery.title">Activity Discovery</span>
             </h1>
-            <div>
+            <div class="d-flex align-items-center gap-2">
                 <select id="tripSelect" class="form-select d-inline-block" style="width: auto;">
                     <option value="">Select a trip...</option>
                 </select>
+                <button id="translateButton" class="btn btn-outline-primary d-none" onclick="triggerTranslation()">
+                    <i class="bi bi-translate"></i>
+                    <span id="translateButtonText">Translate Activities</span>
+                </button>
             </div>
         </div>
     </div>
@@ -292,7 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                             <div class="card-body d-flex flex-column">
                                 <h6 class="card-title">${act.name}</h6>
-                                <p class="card-text text-muted small flex-grow-1">${act.description || '暂无描述'}</p>
+                                <div class="activity-description-wrapper flex-grow-1">
+                                    ${getActivityDescription(act)}
+                                </div>
+                                ${getChineseCulturalContent(act)}
                                 
                                 <!-- Voting Section -->
                                 <div class="voting-section mb-2" data-recommendation-id="${act.id}">
@@ -418,6 +425,7 @@ async function loadTrips() {
             currentTrip = osakaTrip;
             loadVotingDashboard();
             updateFavoritesCount();
+            updateTranslationButton();
         }
         
     } catch (error) {
@@ -435,11 +443,13 @@ function setupEventHandlers() {
             // Find the trip object
             loadVotingDashboard();
             updateFavoritesCount();
+            updateTranslationButton();
         } else {
             currentTripId = null;
             currentTrip = null;
             document.getElementById('votingDashboard').style.display = 'none';
             document.getElementById('favoritesCount').textContent = '0';
+            updateTranslationButton();
         }
     });
     
@@ -546,10 +556,20 @@ function renderCardView(results, container) {
                             </span>
                          </div>` : ''
                     }
+                    ${activity.quality_score ? 
+                        `<div class="position-absolute top-0 start-0 m-2">
+                            <span class="badge bg-success bg-opacity-90">
+                                <i class="bi bi-award"></i> ${activity.quality_score}
+                            </span>
+                         </div>` : ''
+                    }
                 </div>
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">${activity.name}</h5>
-                    <p class="card-text text-muted small flex-grow-1">${activity.description || 'No description available'}</p>
+                    <div class="activity-description-wrapper">
+                        ${getActivityDescription(activity)}
+                    </div>
+                    ${getChineseCulturalContent(activity)}
                     
                     <div class="mt-auto">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -622,11 +642,14 @@ function renderListView(results, container) {
                 </div>
                 <div class="col-md-6">
                     <h6 class="mb-1">${activity.name}</h6>
-                    <p class="mb-1 text-muted small">${activity.description || 'No description available'}</p>
+                    <div class="mb-1">${getActivityDescription(activity, 'list')}</div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-${getCategoryColor(activity.category)}">${activity.category}</span>
                         ${activity.external_rating ? 
                             `<span class="badge bg-warning"><i class="bi bi-star-fill"></i> ${activity.external_rating.toFixed(1)}</span>` : ''
+                        }
+                        ${activity.quality_score ? 
+                            `<span class="badge bg-success"><i class="bi bi-award"></i> ${activity.quality_score}</span>` : ''
                         }
                         ${activity.estimated_cost > 0 ? 
                             `<span class="text-success fw-bold">$${activity.estimated_cost}</span>` :
@@ -746,26 +769,29 @@ async function showActivityDetails(activityId) {
                     }
                 </div>
                 <div class="col-md-6">
-                    <h6>Details</h6>
-                    <p>${activity.description || 'No description available'}</p>
+                    <h6>${getCurrentLanguage() === 'zh' ? '详情' : 'Details'}</h6>
+                    ${getActivityDetailDescription(activity)}
                     
-                    <h6>Information</h6>
+                    <h6>${getCurrentLanguage() === 'zh' ? '基本信息' : 'Information'}</h6>
                     <ul class="list-unstyled">
-                        <li><strong>Category:</strong> ${activity.category}</li>
-                        <li><strong>Cost:</strong> ${activity.estimated_cost > 0 ? `$${activity.estimated_cost}` : 'Free'}</li>
-                        ${activity.estimated_duration_hours ? `<li><strong>Duration:</strong> ${activity.estimated_duration_hours} hours</li>` : ''}
-                        ${activity.external_rating ? `<li><strong>Rating:</strong> ${activity.external_rating.toFixed(1)}/5 (${activity.external_review_count} reviews)</li>` : ''}
-                        ${activity.difficulty_level ? `<li><strong>Difficulty:</strong> ${activity.difficulty_level}</li>` : ''}
-                        ${activity.age_appropriate ? `<li><strong>Age Group:</strong> ${activity.age_appropriate}</li>` : ''}
+                        <li><strong>${getCurrentLanguage() === 'zh' ? '类别:' : 'Category:'}</strong> ${activity.category}</li>
+                        <li><strong>${getCurrentLanguage() === 'zh' ? '费用:' : 'Cost:'}</strong> ${activity.estimated_cost > 0 ? `$${activity.estimated_cost}` : (getCurrentLanguage() === 'zh' ? '免费' : 'Free')}</li>
+                        ${activity.estimated_duration_hours ? `<li><strong>${getCurrentLanguage() === 'zh' ? '时长:' : 'Duration:'}</strong> ${activity.estimated_duration_hours} ${getCurrentLanguage() === 'zh' ? '小时' : 'hours'}</li>` : ''}
+                        ${activity.external_rating ? `<li><strong>${getCurrentLanguage() === 'zh' ? '评分:' : 'Rating:'}</strong> ${activity.external_rating.toFixed(1)}/5 (${activity.external_review_count} ${getCurrentLanguage() === 'zh' ? '条评价' : 'reviews'})</li>` : ''}
+                        ${activity.quality_score ? `<li><strong>${getCurrentLanguage() === 'zh' ? '质量评分:' : 'Quality Score:'}</strong> ${activity.quality_score}/100</li>` : ''}
+                        ${activity.difficulty_level ? `<li><strong>${getCurrentLanguage() === 'zh' ? '难度:' : 'Difficulty:'}</strong> ${activity.difficulty_level}</li>` : ''}
+                        ${activity.age_appropriate ? `<li><strong>${getCurrentLanguage() === 'zh' ? '适合年龄:' : 'Age Group:'}</strong> ${activity.age_appropriate}</li>` : ''}
                     </ul>
                     
                     ${activity.address ? `
-                        <h6>Location</h6>
+                        <h6>${getCurrentLanguage() === 'zh' ? '位置' : 'Location'}</h6>
                         <p>${activity.location_name || ''}</p>
                         <p class="text-muted small">${activity.address}</p>
                     ` : ''}
                 </div>
             </div>
+            
+            ${getChineseContentForModal(activity)}
             
             <div class="mt-3">
                 <h6>Family Votes</h6>
@@ -1071,7 +1097,10 @@ function renderFavoritesResults(favorites) {
                         </div>
                         <div class="card-body d-flex flex-column">
                             <h6 class="card-title">${act.name}</h6>
-                            <p class="card-text text-muted small flex-grow-1">${act.description || '暂无描述'}</p>
+                            <div class="activity-description-wrapper flex-grow-1">
+                                ${getActivityDescription(act)}
+                            </div>
+                            ${getChineseCulturalContent(act)}
                             <div class="d-flex justify-content-between align-items-center mt-auto">
                                 <div>
                                     ${act.estimated_cost > 0 ? 
@@ -1173,6 +1202,220 @@ function switchToSearchAndDemo() {
         // 可选：自动执行搜索
         // document.getElementById('searchBtn').click();
     }, 100);
+}
+
+// Helper functions for Chinese content display
+function getActivityDescription(activity, view = 'card') {
+    const isZh = getCurrentLanguage() === 'zh';
+    const description = isZh && activity.description_zh ? activity.description_zh : activity.description;
+    
+    if (view === 'list') {
+        return `<p class="mb-1 text-muted small">${description || (isZh ? '暂无描述' : 'No description available')}</p>`;
+    }
+    
+    return `<p class="card-text text-muted small flex-grow-1">${description || (isZh ? '暂无描述' : 'No description available')}</p>`;
+}
+
+function getChineseCulturalContent(activity) {
+    const isZh = getCurrentLanguage() === 'zh';
+    if (!isZh || (!activity.cultural_notes_zh && !activity.tips_for_chinese_travelers)) {
+        return '';
+    }
+    
+    return `
+        <div class="chinese-content-section mt-2">
+            ${activity.cultural_notes_zh ? `
+                <div class="cultural-notes mb-2">
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#cultural-${activity.id}" 
+                            aria-expanded="false">
+                        <i class="bi bi-journal-text me-1"></i>
+                        <small class="text-primary">文化背景</small>
+                        <i class="bi bi-chevron-down ms-1"></i>
+                    </button>
+                    <div class="collapse mt-1" id="cultural-${activity.id}">
+                        <div class="card card-body py-2 px-3 bg-light">
+                            <small class="text-muted">${activity.cultural_notes_zh}</small>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+            ${activity.tips_for_chinese_travelers ? `
+                <div class="travel-tips">
+                    <button class="btn btn-link btn-sm p-0 text-decoration-none d-flex align-items-center" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#tips-${activity.id}" 
+                            aria-expanded="false">
+                        <i class="bi bi-lightbulb me-1"></i>
+                        <small class="text-info">实用建议</small>
+                        <i class="bi bi-chevron-down ms-1"></i>
+                    </button>
+                    <div class="collapse mt-1" id="tips-${activity.id}">
+                        <div class="card card-body py-2 px-3 bg-info bg-opacity-10">
+                            <small class="text-muted">${activity.tips_for_chinese_travelers}</small>
+                        </div>
+                    </div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function getActivityDetailDescription(activity) {
+    const isZh = getCurrentLanguage() === 'zh';
+    const description = isZh && activity.description_zh ? activity.description_zh : activity.description;
+    return `<p class="mb-3">${description || (isZh ? '暂无描述' : 'No description available')}</p>`;
+}
+
+function getChineseContentForModal(activity) {
+    const isZh = getCurrentLanguage() === 'zh';
+    if (!isZh || (!activity.cultural_notes_zh && !activity.tips_for_chinese_travelers)) {
+        return '';
+    }
+    
+    return `
+        <div class="mt-4 border-top pt-3">
+            <h6><i class="bi bi-translate"></i> 中文专属内容</h6>
+            <div class="row">
+                ${activity.cultural_notes_zh ? `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white py-2">
+                                <h6 class="mb-0"><i class="bi bi-journal-text"></i> 文化背景</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">${activity.cultural_notes_zh}</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${activity.tips_for_chinese_travelers ? `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white py-2">
+                                <h6 class="mb-0"><i class="bi bi-lightbulb"></i> 实用建议</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">${activity.tips_for_chinese_travelers}</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
+
+// Translation functionality
+async function triggerTranslation() {
+    if (!currentTripId) {
+        showAlert('Please select a trip first', 'warning');
+        return;
+    }
+    
+    const translateBtn = document.getElementById('translateButton');
+    const translateText = document.getElementById('translateButtonText');
+    const originalText = translateText.textContent;
+    
+    try {
+        // Show loading state
+        translateBtn.disabled = true;
+        translateText.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Translating...';
+        
+        console.log(`Starting translation for trip ${currentTripId}`);
+        
+        // Check translation status first
+        const statusResponse = await apiRequest(`/api/translation/status/${currentTripId}`);
+        console.log('Translation status:', statusResponse);
+        
+        if (statusResponse.fully_translated && !confirm('All activities are already translated. Do you want to retranslate them?')) {
+            return;
+        }
+        
+        // Trigger translation
+        const response = await apiRequest(`/api/translation/trigger/${currentTripId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                force_retranslate: statusResponse.fully_translated
+            })
+        });
+        
+        console.log('Translation response:', response);
+        
+        if (response.success) {
+            showAlert(
+                `Translation completed! ${response.translated_count} activities translated successfully.`, 
+                'success'
+            );
+            
+            // Refresh current view to show translated content
+            const activeTab = document.querySelector('.nav-link.active').id;
+            if (activeTab === 'history-tab') {
+                loadDiscoveryHistory();
+            } else if (activeTab === 'favorites-tab') {
+                loadFavorites();
+            }
+            
+            // If search results are showing, refresh them too
+            if (searchResults.length > 0) {
+                renderSearchResults(searchResults);
+            }
+            
+        } else {
+            showAlert(
+                `Translation completed with some errors. ${response.translated_count} translated, ${response.error_count} errors.`, 
+                'warning'
+            );
+        }
+        
+    } catch (error) {
+        console.error('Translation error:', error);
+        showAlert('Translation failed. Please try again.', 'danger');
+    } finally {
+        // Reset button state
+        translateBtn.disabled = false;
+        translateText.textContent = originalText;
+    }
+}
+
+// Check translation status and update button
+async function updateTranslationButton() {
+    if (!currentTripId) {
+        document.getElementById('translateButton').classList.add('d-none');
+        return;
+    }
+    
+    try {
+        const status = await apiRequest(`/api/translation/status/${currentTripId}`);
+        const translateBtn = document.getElementById('translateButton');
+        const translateText = document.getElementById('translateButtonText');
+        
+        if (status.total_activities === 0) {
+            translateBtn.classList.add('d-none');
+            return;
+        }
+        
+        translateBtn.classList.remove('d-none');
+        
+        if (status.fully_translated) {
+            translateBtn.className = 'btn btn-success';
+            translateText.textContent = getCurrentLanguage() === 'zh' ? '重新翻译' : 'Retranslate';
+        } else if (status.translated_activities > 0) {
+            translateBtn.className = 'btn btn-warning';
+            translateText.textContent = `${getCurrentLanguage() === 'zh' ? '翻译剩余' : 'Translate'} (${status.needs_translation} ${getCurrentLanguage() === 'zh' ? '剩余' : 'remaining'})`;
+        } else {
+            translateBtn.className = 'btn btn-outline-primary';
+            translateText.textContent = getCurrentLanguage() === 'zh' ? '翻译活动' : 'Translate Activities';
+        }
+        
+    } catch (error) {
+        console.error('Error checking translation status:', error);
+        document.getElementById('translateButton').classList.add('d-none');
+    }
 }
 </script>
 {% endblock %}

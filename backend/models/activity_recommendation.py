@@ -36,6 +36,7 @@ class ActivityRecommendation(BaseModel):
     # Basic Information
     name = Column(String(200), nullable=False, index=True)
     description = Column(Text, nullable=True)
+    description_zh = Column(Text, nullable=True)  # Chinese description
     category = Column(
         String(50), nullable=False, index=True
     )  # sightseeing, food, shopping, etc.
@@ -63,6 +64,13 @@ class ActivityRecommendation(BaseModel):
     age_appropriate = Column(
         String(50), nullable=True
     )  # all_ages, adults_only, families, etc.
+    
+    # Chinese Cultural Content
+    cultural_notes_zh = Column(Text, nullable=True)  # Cultural tips for Chinese travelers
+    tips_for_chinese_travelers = Column(Text, nullable=True)  # Practical tips
+    
+    # Quality Scoring
+    quality_score = Column(Integer, default=0)  # Calculated quality score for filtering
 
     # Media
     primary_image_url = Column(String(500), nullable=True)

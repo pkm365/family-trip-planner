@@ -95,6 +95,17 @@ class Activity(BaseModel):
         String(1000), nullable=True, doc="Primary image URL for the activity"
     )
 
+    # Chinese translation fields
+    description_zh = Column(Text, nullable=True, doc="Chinese description of the activity")
+    
+    cultural_notes_zh = Column(
+        Text, nullable=True, doc="Cultural notes and context in Chinese"
+    )
+    
+    tips_for_chinese_travelers = Column(
+        Text, nullable=True, doc="Tips specifically for Chinese travelers"
+    )
+
     # Relationships
     trip = relationship(
         "Trip", back_populates="activities", doc="Trip this activity belongs to"

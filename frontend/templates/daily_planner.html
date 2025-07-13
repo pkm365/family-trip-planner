@@ -2065,6 +2065,16 @@ function setupEventHandlers() {
     // Activity forms
     document.getElementById('createActivityBtn').addEventListener('click', createActivity);
     document.getElementById('updateActivityBtn').addEventListener('click', updateActivity);
+    
+    // Language change event listener
+    document.addEventListener('languageChanged', function(event) {
+        console.log('Language changed to:', event.detail.language);
+        
+        // Refresh the daily activities display to show proper language content
+        if (currentTripId) {
+            loadTripData(currentTripId);
+        }
+    });
 }
 
 async function loadTripData(tripId) {
@@ -2212,6 +2222,7 @@ function renderTimeSlot(title, activities, date) {
                          data-activity-timeslot="${activity.time_slot}"
                          data-activity-name="${activity.name}"
                          data-activity-description="${activity.description || ''}"
+                         data-activity-description-zh="${activity.description_zh || ''}"
                          data-activity-category="${activity.category}"
                          data-activity-location="${activity.location_name || ''}"
                          data-activity-address="${activity.address || ''}"
@@ -2286,6 +2297,11 @@ function renderTimeSlot(title, activities, date) {
                                             )
                                         }
                                     </div>
+                                    ${activity.description || activity.description_zh ? `
+                                        <div class="small text-muted text-truncate mt-1">
+                                            ${getCurrentLanguage() === 'zh' && activity.description_zh ? activity.description_zh : activity.description}
+                                        </div>
+                                    ` : ''}
                                     ${activity.location_name ? 
                                         `<div class="small text-muted text-truncate mt-1">
                                             <i class="bi bi-geo-alt" style="font-size: 0.7rem;"></i> ${activity.location_name}
@@ -2884,6 +2900,7 @@ function renderShowcaseActivities(recommendations) {
              data-recommendation-id="${rec.id}"
              data-activity-name="${rec.name}"
              data-activity-description="${rec.description || ''}"
+             data-activity-description-zh="${rec.description_zh || ''}"
              data-activity-category="${rec.category}"
              data-activity-cost="${rec.estimated_cost || 0}"
              data-activity-location="${rec.location_name || ''}"
@@ -2909,8 +2926,8 @@ function renderShowcaseActivities(recommendations) {
                 </div>
             </div>
             
-            ${rec.description ? `
-                <p class="activity-description">${rec.description}</p>
+            ${rec.description || rec.description_zh ? `
+                <p class="activity-description">${getCurrentLanguage() === 'zh' && rec.description_zh ? rec.description_zh : rec.description}</p>
             ` : ''}
             
             <div class="d-flex justify-content-between align-items-center mt-2">
@@ -3301,29 +3318,30 @@ function showDetailModal(item, type) {
             </div>
          </div>`;
 
-    // Generate quick info cards
+    // Generate quick info cards with Chinese support
+    const isZh = getCurrentLanguage() === 'zh';
     const quickInfoHtml = `
         <div class="activity-quick-info">
             <div class="activity-info-card cost-card">
                 <i class="bi bi-currency-dollar"></i>
-                <h6>Cost</h6>
+                <h6>${isZh ? '费用' : 'Cost'}</h6>
                 <p class="value ${item.estimated_cost > 0 ? '' : 'free'}">
-                    ${item.estimated_cost > 0 ? `$${item.estimated_cost}` : 'Free'}
+                    ${item.estimated_cost > 0 ? `$${item.estimated_cost}` : (isZh ? '免费' : 'Free')}
                 </p>
             </div>
             ${item.estimated_duration_hours ? 
                 `<div class="activity-info-card time-card">
                     <i class="bi bi-clock"></i>
-                    <h6>Duration</h6>
-                    <p class="value">${item.estimated_duration_hours}h</p>
+                    <h6>${isZh ? '时长' : 'Duration'}</h6>
+                    <p class="value">${item.estimated_duration_hours}${isZh ? '小时' : 'h'}</p>
                  </div>` : 
                 `<div class="activity-info-card schedule-card">
                     <i class="bi bi-calendar-event"></i>
-                    <h6>Scheduled</h6>
+                    <h6>${isZh ? '已安排' : 'Scheduled'}</h6>
                     <p class="value" style="font-size: 0.9rem;">
                         ${type === 'activity' && item.activity_date ? 
                             `${formatDate(item.activity_date)}<br><small>${item.time_slot}</small>` : 
-                            'Not scheduled'
+                            (isZh ? '未安排' : 'Not scheduled')
                         }
                     </p>
                  </div>`
@@ -3331,61 +3349,69 @@ function showDetailModal(item, type) {
             ${item.external_rating ? 
                 `<div class="activity-info-card rating-card">
                     <i class="bi bi-star-fill"></i>
-                    <h6>Rating</h6>
+                    <h6>${isZh ? '评分' : 'Rating'}</h6>
                     <p class="value">${item.external_rating.toFixed(1)}/5</p>
                  </div>` : ''
             }
             ${item.external_review_count ? 
                 `<div class="activity-info-card">
                     <i class="bi bi-chat-quote" style="color: var(--warm-info);"></i>
-                    <h6>Reviews</h6>
-                    <p class="value">${item.external_review_count}</p>
+                    <h6>${isZh ? '评价' : 'Reviews'}</h6>
+                    <p class="value">${item.external_review_count}${isZh ? '条' : ''}</p>
+                 </div>` : ''
+            }
+            ${item.quality_score ? 
+                `<div class="activity-info-card">
+                    <i class="bi bi-award" style="color: var(--warm-success);"></i>
+                    <h6>${isZh ? '质量分' : 'Quality'}</h6>
+                    <p class="value">${item.quality_score}/100</p>
                  </div>` : ''
             }
         </div>
     `;
 
-    // Generate description section
-    const descriptionHtml = item.description ? `
+    // Generate description section with Chinese support
+    const descriptionHtml = (item.description || item.description_zh) ? `
         <div class="activity-description-section">
-            <h6><i class="bi bi-file-text"></i> Description</h6>
-            <p>${item.description}</p>
+            <h6><i class="bi bi-file-text"></i> ${getCurrentLanguage() === 'zh' ? '详情' : 'Description'}</h6>
+            ${getActivityDetailDescription(item)}
         </div>
+        ${getChineseContentForModal(item)}
     ` : '';
 
-    // Generate location section
+    // Generate location section with Chinese support
     const locationHtml = (item.location_name || item.address) ? `
         <div class="activity-location-section">
-            <h6><i class="bi bi-geo-alt-fill"></i> Location</h6>
+            <h6><i class="bi bi-geo-alt-fill"></i> ${isZh ? '位置' : 'Location'}</h6>
             ${item.location_name ? `<p class="location-name">${item.location_name}</p>` : ''}
             ${item.address ? `<p class="location-address">${item.address}</p>` : ''}
         </div>
     ` : '';
 
-    // Generate family interaction zone
+    // Generate family interaction zone with Chinese support
     const familyInteractionHtml = `
         <div class="family-interaction-zone">
-            <h6><i class="bi bi-people-fill"></i> Family Feedback</h6>
+            <h6><i class="bi bi-people-fill"></i> ${isZh ? '家庭反馈' : 'Family Feedback'}</h6>
             ${type === 'recommendation' && item.vote_summary ? `
                 <div class="family-votes">
                     <div class="vote-item likes">
                         <i class="bi bi-hand-thumbs-up-fill"></i>
-                        <span>${item.vote_summary.positive} likes</span>
+                        <span>${item.vote_summary.positive} ${isZh ? '人喜欢' : 'likes'}</span>
                     </div>
                     <div class="vote-item dislikes">
                         <i class="bi bi-hand-thumbs-down-fill"></i>
-                        <span>${item.vote_summary.negative} dislikes</span>
+                        <span>${item.vote_summary.negative} ${isZh ? '人不喜欢' : 'dislikes'}</span>
                     </div>
                 </div>
             ` : ''}
             <div class="family-wishes">
                 <div class="wish-item">
                     <div class="wish-avatar">M</div>
-                    <span><strong>Mom:</strong> "This looks perfect for our family adventure!"</span>
+                    <span><strong>${isZh ? '妈妈:' : 'Mom:'}</strong> "${isZh ? '这个看起来很适合我们的家庭冒险!' : 'This looks perfect for our family adventure!'}"</span>
                 </div>
                 <div class="wish-item">
                     <div class="wish-avatar">D</div>
-                    <span><strong>Dad:</strong> "Great for taking memorable photos."</span>
+                    <span><strong>${isZh ? '爸爸:' : 'Dad:'}</strong> "${isZh ? '很适合拍照留念。' : 'Great for taking memorable photos.'}"</span>
                 </div>
             </div>
         </div>
@@ -4057,6 +4083,63 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 10000);
     }
 });
+
+// Helper functions for Chinese content display in daily planner
+function getActivityDescription(activity, view = 'card') {
+    const isZh = getCurrentLanguage() === 'zh';
+    const description = isZh && activity.description_zh ? activity.description_zh : activity.description;
+    
+    if (view === 'list') {
+        return `<p class="mb-1 text-muted small">${description || (isZh ? '暂无描述' : 'No description available')}</p>`;
+    }
+    
+    return `<p class="card-text text-muted small">${description || (isZh ? '暂无描述' : 'No description available')}</p>`;
+}
+
+function getActivityDetailDescription(activity) {
+    const isZh = getCurrentLanguage() === 'zh';
+    const description = isZh && activity.description_zh ? activity.description_zh : activity.description;
+    return `<p class="mb-3">${description || (isZh ? '暂无描述' : 'No description available')}</p>`;
+}
+
+function getChineseContentForModal(activity) {
+    const isZh = getCurrentLanguage() === 'zh';
+    if (!isZh || (!activity.cultural_notes_zh && !activity.tips_for_chinese_travelers)) {
+        return '';
+    }
+    
+    return `
+        <div class="mt-4 border-top pt-3">
+            <h6><i class="bi bi-translate"></i> 中文专属内容</h6>
+            <div class="row">
+                ${activity.cultural_notes_zh ? `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white py-2">
+                                <h6 class="mb-0"><i class="bi bi-journal-text"></i> 文化背景</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">${activity.cultural_notes_zh}</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+                ${activity.tips_for_chinese_travelers ? `
+                    <div class="col-md-6 mb-3">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white py-2">
+                                <h6 class="mb-0"><i class="bi bi-lightbulb"></i> 实用建议</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="mb-0">${activity.tips_for_chinese_travelers}</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+}
 
 </script>
 {% endblock %}

@@ -11,6 +11,7 @@ from .family_member import FamilyMember, MemberRole
 from .activity_recommendation import ActivityRecommendation
 from .activity_vote import ActivityVote, ActivityComment
 from .activity_favorite import ActivityFavorite
+from .translation_cache import TranslationCache
 
 __all__ = [
     "Base",
@@ -27,4 +28,5 @@ __all__ = [
     "ActivityVote",
     "ActivityComment",
     "ActivityFavorite",
+    "TranslationCache",
 ]

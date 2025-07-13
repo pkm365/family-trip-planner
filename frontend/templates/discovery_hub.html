@@ -1,0 +1,1178 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Discovery - Family Trip Planner{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="bi bi-compass"></i>
+                <span data-i18n="discovery.title">Activity Discovery</span>
+            </h1>
+            <div>
+                <select id="tripSelect" class="form-select d-inline-block" style="width: auto;">
+                    <option value="">Select a trip...</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search-pane" type="button" role="tab">
+                    <i class="bi bi-search"></i> 搜索新地点
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="favorites-tab" data-bs-toggle="tab" data-bs-target="#favorites-pane" type="button" role="tab">
+                    <i class="bi bi-heart"></i> 我的收藏 <span class="badge bg-danger ms-1" id="favoritesCount">0</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-pane" type="button" role="tab">
+                    <i class="bi bi-clock-history"></i> 发现历史 <span class="badge bg-secondary ms-1" id="historyCount">0</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="search-pane" role="tabpanel">
+                <form id="searchForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="searchQuery" class="form-label" data-i18n="discovery.search_query">What are you looking for?</label>
+                        <input type="text" class="form-control" id="searchQuery" 
+                               placeholder="e.g., family restaurants, temples, shopping" 
+                               data-i18n-placeholder="discovery.search_placeholder">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="searchCategory" class="form-label" data-i18n="activity.category">Category</label>
+                        <select class="form-select" id="searchCategory">
+                            <option value="">All categories</option>
+                            <option value="sightseeing" data-i18n="category.sightseeing">Sightseeing</option>
+                            <option value="food" data-i18n="category.food">Food</option>
+                            <option value="shopping" data-i18n="category.shopping">Shopping</option>
+                            <option value="rest" data-i18n="category.rest">Rest</option>
+                            <option value="transportation" data-i18n="category.transportation">Transportation</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="searchBudget" class="form-label" data-i18n="discovery.max_budget">Max Budget</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="searchBudget" min="0" step="0.01">
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary" id="searchBtn">
+                            <i class="bi bi-search"></i>
+                            <span data-i18n="discovery.search">Search</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary ms-2" id="clearSearchBtn">
+                            <i class="bi bi-x-circle"></i>
+                            <span data-i18n="common.clear">Clear</span>
+                        </button>
+                    </div>
+                </form>
+            </div> <!-- /tab-pane search -->
+            <div class="tab-pane fade" id="favorites-pane" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="favoritesFilter" placeholder="筛选收藏...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="favoritesSortBy">
+                            <option value="favorite_date" selected>按收藏时间</option>
+                            <option value="popularity_score">按人气评分</option>
+                            <option value="external_rating">按外部评分</option>
+                            <option value="estimated_cost">按预估费用</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-grid">
+                        <button class="btn btn-outline-danger" id="refreshFavoritesBtn">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+                <div id="favoritesResults"></div>
+            </div> <!-- /tab-pane favorites -->
+            <div class="tab-pane fade" id="history-pane" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" class="form-control" id="historyFilter" placeholder="筛选历史记录...">
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select" id="historySortBy">
+                            <option value="popularity_score" selected>按人气评分</option>
+                            <option value="discovery_date">按发现时间</option>
+                            <option value="external_rating">按外部评分</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-grid">
+                        <button class="btn btn-outline-primary" id="refreshHistoryBtn">
+                            <i class="bi bi-arrow-clockwise"></i> 刷新
+                        </button>
+                    </div>
+                </div>
+                <div id="historyResults"></div>
+            </div> <!-- /tab-pane history -->
+        </div> <!-- /tab-content -->
+    </div>
+</div>
+
+<!-- Results Section -->
+<div id="searchResults" class="d-none">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 data-i18n="discovery.search_results">Search Results</h4>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary active" data-view="cards">
+                <i class="bi bi-grid-3x3-gap"></i>
+                <span data-i18n="discovery.card_view">Cards</span>
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-view="list">
+                <i class="bi bi-list"></i>
+                <span data-i18n="discovery.list_view">List</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div id="searchLoading" class="text-center py-4 d-none">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2" data-i18n="discovery.searching">Searching for activities...</p>
+    </div>
+    
+    <!-- Results container -->
+    <div id="resultsContainer" class="row">
+        <!-- Flashcards will be inserted here -->
+    </div>
+    
+    <!-- No results message -->
+    <div id="noResults" class="text-center py-5 d-none">
+        <i class="bi bi-search" style="font-size: 3rem; color: #6c757d;"></i>
+        <h4 class="text-muted mt-3" data-i18n="discovery.no_results">No activities found</h4>
+        <p class="text-muted" data-i18n="discovery.try_different_search">Try a different search term or adjust your filters.</p>
+    </div>
+</div>
+
+<!-- Voting Dashboard -->
+<div class="card mt-4" id="votingDashboard" style="display: none;">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-heart"></i>
+            <span data-i18n="voting.family_votes">Family Votes</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div id="votingSummary" class="row mb-3">
+            <!-- Voting summary stats will be inserted here -->
+        </div>
+        <div id="topVotedActivities">
+            <!-- Top voted activities will be shown here -->
+        </div>
+    </div>
+</div>
+
+<!-- Activity Detail Modal -->
+<div class="modal fade" id="activityDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="activityDetailTitle">Activity Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="activityDetailBody">
+                <!-- Activity details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.close">Close</button>
+                <button type="button" class="btn btn-primary" id="addToScheduleBtn">
+                    <i class="bi bi-calendar-plus"></i>
+                    <span data-i18n="discovery.add_to_schedule">Add to Schedule</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentTripId = null;
+let currentTrip = null;
+let searchResults = [];
+let historyResults = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize page
+    loadTrips();
+    setupEventHandlers();
+
+    // 发现历史加载
+    async function loadDiscoveryHistory() {
+        if (!currentTripId) return;
+
+        const refreshBtn = document.getElementById('refreshHistoryBtn');
+        refreshBtn.classList.add('disabled');
+        refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 刷新';
+
+        try {
+            const sortBy = document.getElementById('historySortBy').value || 'popularity_score';
+
+            console.log('Loading history for trip:', currentTripId);
+            const response = await apiRequest(`/api/search/recommendations?trip_id=${currentTripId}&page_size=50`);
+            console.log('History response:', response);
+            
+            historyResults = response.recommendations || [];
+            const recommendations = sortRecommendations(historyResults, sortBy);
+            
+            // 更新计数器
+            document.getElementById('historyCount').textContent = response.total_count || 0;
+            
+            renderHistoryResults(recommendations);
+
+        } catch (error) {
+            console.error('Error loading discovery history:', error);
+            showAlert('无法加载历史记录，请稍后重试。', 'danger');
+        } finally {
+            refreshBtn.classList.remove('disabled');
+            refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> 刷新';
+        }
+    }
+
+    // 渲染历史列表
+    function renderHistoryResults(recommendations) {
+        console.log('Rendering history results:', recommendations);
+        const container = document.getElementById('historyResults');
+
+        if (!recommendations || recommendations.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="bi bi-clock-history" style="font-size: 3rem; color: #6c757d;"></i>
+                    <h5 class="text-muted mt-3">还没有搜索历史</h5>
+                    <p class="text-muted">开始搜索地点，这里会显示您的发现记录</p>
+                    <button class="btn btn-primary mt-3" onclick="switchToSearchAndDemo()">
+                        <i class="bi bi-search"></i> 开始搜索活动
+                    </button>
+                </div>`;
+            return;
+        }
+
+        try {
+            container.innerHTML = `
+                <div class="row">
+                    ${recommendations.map(act => {
+                        try {
+                            return `
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm activity-history-card" data-activity-id="${act.id}">
+                            <div class="position-relative">
+                                ${act.primary_image_url ? 
+                                    `<img src="${act.primary_image_url}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="${act.name}">` :
+                                    `<div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                        <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                                    </div>`}
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-${getCategoryColor(act.category)}">${act.category}</span>
+                                </div>
+                                ${act.external_rating ? 
+                                    `<div class="position-absolute bottom-0 start-0 m-2">
+                                        <span class="badge bg-dark bg-opacity-75">
+                                            <i class="bi bi-star-fill text-warning"></i> ${act.external_rating.toFixed(1)}
+                                        </span>
+                                    </div>` : ''}
+                            </div>
+                            <div class="card-body d-flex flex-column">
+                                <h6 class="card-title">${act.name}</h6>
+                                <p class="card-text text-muted small flex-grow-1">${act.description || '暂无描述'}</p>
+                                
+                                <!-- Voting Section -->
+                                <div class="voting-section mb-2" data-recommendation-id="${act.id}">
+                                    <div class="btn-group btn-group-sm w-100" role="group">
+                                        <button type="button" class="btn btn-outline-success vote-btn" data-vote="positive">
+                                            <i class="bi bi-heart"></i> ${(act.vote_summary && act.vote_summary.positive) || 0}
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger vote-btn" data-vote="negative">
+                                            <i class="bi bi-x-circle"></i> ${(act.vote_summary && act.vote_summary.negative) || 0}
+                                        </button>
+                                    </div>
+                                    <div class="text-center mt-1">
+                                        <small class="text-muted">Score: ${(act.vote_summary && act.vote_summary.score) || 0}</small>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center mt-auto">
+                                    <small class="text-muted">${formatDate(act.discovery_date) || 'Unknown date'}</small>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="showActivityDetails(${act.id})">详情</button>
+                                        <button class="btn btn-sm btn-outline-danger favorite-btn" 
+                                                data-recommendation-id="${act.id}"
+                                                onclick="toggleFavorite(${act.id}, this)">
+                                            <i class="bi bi-heart"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                        } catch (cardError) {
+                            console.error('Error rendering card for activity:', act, cardError);
+                            return `<div class="col-12"><div class="alert alert-warning">Error loading activity: ${act.name || 'Unknown'}</div></div>`;
+                        }
+                    }).join('')}
+                </div>`;
+            
+            // Add voting event listeners for history cards
+            setupVotingHandlers();
+            
+            // Update favorite buttons for history cards
+            updateFavoriteButtons();
+        } catch (error) {
+            console.error('Error rendering history results:', error);
+            container.innerHTML = `<div class="alert alert-danger">Error loading history. Please try again.</div>`;
+        }
+    }
+
+    // sort client side if needed
+    function sortRecommendations(list, sortBy) {
+        const arr = [...list];
+        if (sortBy === 'popularity_score') {
+            arr.sort((a, b) => (b.popularity_score || 0) - (a.popularity_score || 0));
+        } else if (sortBy === 'external_rating') {
+            arr.sort((a, b) => (b.external_rating || 0) - (a.external_rating || 0));
+        } else { // discovery_date
+            arr.sort((a, b) => new Date(b.discovery_date) - new Date(a.discovery_date));
+        }
+        return arr;
+    }
+    
+    // 历史筛选功能
+    function filterHistoryResults() {
+        const filterText = document.getElementById('historyFilter').value.toLowerCase().trim();
+        const sortBy = document.getElementById('historySortBy').value || 'popularity_score';
+        
+        let filtered = historyResults;
+        if (filterText) {
+            filtered = historyResults.filter(item => 
+                item.name.toLowerCase().includes(filterText) ||
+                (item.description && item.description.toLowerCase().includes(filterText)) ||
+                item.category.toLowerCase().includes(filterText) ||
+                (item.location_name && item.location_name.toLowerCase().includes(filterText))
+            );
+        }
+        
+        const sorted = sortRecommendations(filtered, sortBy);
+        renderHistoryResults(sorted);
+    }
+
+    // 绑定事件
+    document.getElementById('history-tab').addEventListener('shown.bs.tab', () => {
+        loadDiscoveryHistory();
+        document.getElementById('searchResults').classList.add('d-none');
+    });
+
+    document.getElementById('search-tab').addEventListener('shown.bs.tab', () => {
+        document.getElementById('searchResults').classList.remove('d-none');
+    });
+
+    document.getElementById('refreshHistoryBtn').addEventListener('click', loadDiscoveryHistory);
+
+    // 新增：将筛选/排序事件绑定到此处，确保能访问 filterHistoryResults
+    document.getElementById('historyFilter').addEventListener('input', filterHistoryResults);
+    document.getElementById('historySortBy').addEventListener('change', loadDiscoveryHistory);
+
+}); // 结束 DOMContentLoaded 回调
+
+async function loadTrips() {
+    try {
+        const trips = await apiRequest('/api/trips/');
+        const select = document.getElementById('tripSelect');
+        
+        select.innerHTML = '<option value="">Select a trip...</option>';
+        
+        let osakaTrip = null;
+        trips.forEach(trip => {
+            const option = document.createElement('option');
+            option.value = trip.id;
+            option.textContent = `${trip.name} (${formatDate(trip.start_date)} - ${formatDate(trip.end_date)})`;
+            select.appendChild(option);
+            
+            // Find Osaka Family Trip for default selection
+            if (trip.name.toLowerCase().includes('osaka')) {
+                osakaTrip = trip;
+            }
+        });
+        
+        // Auto-select Osaka Family Trip if found
+        if (osakaTrip) {
+            select.value = osakaTrip.id;
+            currentTripId = osakaTrip.id;
+            currentTrip = osakaTrip;
+            loadVotingDashboard();
+            updateFavoritesCount();
+        }
+        
+    } catch (error) {
+        console.error('Error loading trips:', error);
+        showAlert('Error loading trips', 'danger');
+    }
+}
+
+function setupEventHandlers() {
+    // Trip selection
+    document.getElementById('tripSelect').addEventListener('change', function() {
+        const tripId = this.value;
+        if (tripId) {
+            currentTripId = tripId;
+            // Find the trip object
+            loadVotingDashboard();
+            updateFavoritesCount();
+        } else {
+            currentTripId = null;
+            currentTrip = null;
+            document.getElementById('votingDashboard').style.display = 'none';
+            document.getElementById('favoritesCount').textContent = '0';
+        }
+    });
+    
+    // Search form
+    document.getElementById('searchForm').addEventListener('submit', handleSearch);
+    document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
+    
+    // View toggles
+    document.querySelectorAll('[data-view]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const view = this.getAttribute('data-view');
+            toggleView(view);
+        });
+    });
+    
+    // History filter and sort
+    // document.getElementById('historyFilter').addEventListener('input', filterHistoryResults);
+    // document.getElementById('historySortBy').addEventListener('change', loadDiscoveryHistory);
+}
+
+async function handleSearch(event) {
+    event.preventDefault();
+    
+    if (!currentTripId) {
+        showAlert('Please select a trip first', 'warning');
+        return;
+    }
+    
+    const query = document.getElementById('searchQuery').value.trim();
+    if (!query) {
+        showAlert('Please enter a search query', 'warning');
+        return;
+    }
+    
+    const category = document.getElementById('searchCategory').value;
+    const budgetMax = parseFloat(document.getElementById('searchBudget').value) || null;
+    
+    try {
+        document.getElementById('searchLoading').classList.remove('d-none');
+        document.getElementById('searchResults').classList.remove('d-none');
+        document.getElementById('resultsContainer').innerHTML = '';
+        document.getElementById('noResults').classList.add('d-none');
+        
+        const searchData = {
+            query: query,
+            trip_id: currentTripId,
+            category: category || null,
+            budget_max: budgetMax,
+            radius_km: 10,
+            limit: 20
+        };
+        
+        const response = await apiRequest('/api/search/activities', {
+            method: 'POST',
+            body: JSON.stringify(searchData)
+        });
+        
+        searchResults = response.recommendations;
+        
+        if (searchResults.length === 0) {
+            document.getElementById('noResults').classList.remove('d-none');
+        } else {
+            renderSearchResults(searchResults);
+        }
+        
+    } catch (error) {
+        console.error('Search error:', error);
+        showAlert('Error searching for activities. Please try again.', 'danger');
+    } finally {
+        document.getElementById('searchLoading').classList.add('d-none');
+    }
+}
+
+function renderSearchResults(results) {
+    const container = document.getElementById('resultsContainer');
+    const currentView = document.querySelector('[data-view].active').getAttribute('data-view');
+    
+    if (currentView === 'cards') {
+        renderCardView(results, container);
+    } else {
+        renderListView(results, container);
+    }
+}
+
+function renderCardView(results, container) {
+    container.className = 'row';
+    container.innerHTML = results.map(activity => `
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card h-100 activity-flashcard" data-activity-id="${activity.id}">
+                <div class="position-relative">
+                    ${activity.primary_image_url ? 
+                        `<img src="${activity.primary_image_url}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${activity.name}">` :
+                        `<div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                         </div>`
+                    }
+                    <div class="position-absolute top-0 end-0 m-2">
+                        <span class="badge bg-${getCategoryColor(activity.category)}">${activity.category}</span>
+                    </div>
+                    ${activity.external_rating ? 
+                        `<div class="position-absolute bottom-0 start-0 m-2">
+                            <span class="badge bg-dark bg-opacity-75">
+                                <i class="bi bi-star-fill text-warning"></i> ${activity.external_rating.toFixed(1)}
+                            </span>
+                         </div>` : ''
+                    }
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">${activity.name}</h5>
+                    <p class="card-text text-muted small flex-grow-1">${activity.description || 'No description available'}</p>
+                    
+                    <div class="mt-auto">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            ${activity.estimated_cost > 0 ? 
+                                `<span class="text-success fw-bold">$${activity.estimated_cost}</span>` :
+                                `<span class="text-muted">Free</span>`
+                            }
+                            ${activity.estimated_duration_hours ? 
+                                `<small class="text-muted"><i class="bi bi-clock"></i> ${activity.estimated_duration_hours}h</small>` :
+                                ''
+                            }
+                        </div>
+                        
+                        <!-- Voting Section -->
+                        <div class="voting-section mb-2" data-recommendation-id="${activity.id}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" class="btn btn-outline-success vote-btn" data-vote="positive">
+                                        <i class="bi bi-heart"></i> ${activity.vote_summary.positive}
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger vote-btn" data-vote="negative">
+                                        <i class="bi bi-x-circle"></i> ${activity.vote_summary.negative}
+                                    </button>
+                                </div>
+                                <small class="text-muted">Score: ${activity.vote_summary.score}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <div class="row g-1">
+                                <div class="col-8">
+                                    <button class="btn btn-primary btn-sm w-100" onclick="showActivityDetails(${activity.id})">
+                                        <i class="bi bi-eye"></i> View Details
+                                    </button>
+                                </div>
+                                <div class="col-4">
+                                    <button class="btn btn-outline-danger btn-sm w-100 favorite-btn" 
+                                            data-recommendation-id="${activity.id}"
+                                            onclick="toggleFavorite(${activity.id}, this)">
+                                        <i class="bi bi-heart"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add voting event listeners
+    setupVotingHandlers();
+    
+    // Update favorite buttons
+    updateFavoriteButtons();
+}
+
+function renderListView(results, container) {
+    container.className = 'list-group';
+    container.innerHTML = results.map(activity => `
+        <div class="list-group-item">
+            <div class="row align-items-center">
+                <div class="col-md-2">
+                    ${activity.primary_image_url ? 
+                        `<img src="${activity.primary_image_url}" class="img-fluid rounded" style="height: 80px; width: 100%; object-fit: cover;" alt="${activity.name}">` :
+                        `<div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 80px;">
+                            <i class="bi bi-image text-muted"></i>
+                         </div>`
+                    }
+                </div>
+                <div class="col-md-6">
+                    <h6 class="mb-1">${activity.name}</h6>
+                    <p class="mb-1 text-muted small">${activity.description || 'No description available'}</p>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-${getCategoryColor(activity.category)}">${activity.category}</span>
+                        ${activity.external_rating ? 
+                            `<span class="badge bg-warning"><i class="bi bi-star-fill"></i> ${activity.external_rating.toFixed(1)}</span>` : ''
+                        }
+                        ${activity.estimated_cost > 0 ? 
+                            `<span class="text-success fw-bold">$${activity.estimated_cost}</span>` :
+                            `<span class="text-muted">Free</span>`
+                        }
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="voting-section" data-recommendation-id="${activity.id}">
+                        <div class="btn-group btn-group-sm d-grid" role="group">
+                            <button type="button" class="btn btn-outline-success vote-btn" data-vote="positive">
+                                <i class="bi bi-heart"></i> ${activity.vote_summary.positive}
+                            </button>
+                            <button type="button" class="btn btn-outline-danger vote-btn" data-vote="negative">
+                                <i class="bi bi-x-circle"></i> ${activity.vote_summary.negative}
+                            </button>
+                        </div>
+                        <small class="text-muted d-block text-center mt-1">Score: ${activity.vote_summary.score}</small>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="d-grid gap-1">
+                        <button class="btn btn-primary btn-sm" onclick="showActivityDetails(${activity.id})">
+                            <i class="bi bi-eye"></i> Details
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm favorite-btn" 
+                                data-recommendation-id="${activity.id}"
+                                onclick="toggleFavorite(${activity.id}, this)">
+                            <i class="bi bi-heart"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add voting event listeners
+    setupVotingHandlers();
+    
+    // Update favorite buttons
+    updateFavoriteButtons();
+}
+
+function setupVotingHandlers() {
+    document.querySelectorAll('.vote-btn').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const recommendationId = this.closest('.voting-section').getAttribute('data-recommendation-id');
+            const voteType = this.getAttribute('data-vote');
+            
+            await castVote(recommendationId, voteType);
+        });
+    });
+}
+
+async function castVote(recommendationId, voteType) {
+    if (!currentTripId) {
+        showAlert('Please select a trip first', 'warning');
+        return;
+    }
+    
+    // For now, use the first family member - in a real app, you'd have user authentication
+    try {
+        const familyMembers = await apiRequest(`/api/family-members/?trip_id=${currentTripId}`);
+        if (familyMembers.length === 0) {
+            showAlert('No family members found for this trip', 'warning');
+            return;
+        }
+        
+        const familyMemberId = familyMembers[0].id; // Use first family member for demo
+        
+        const voteData = {
+            recommendation_id: parseInt(recommendationId),
+            family_member_id: familyMemberId,
+            vote_type: voteType
+        };
+        
+        await apiRequest('/api/voting/votes', {
+            method: 'POST',
+            body: JSON.stringify(voteData)
+        });
+        
+        showAlert('Vote cast successfully!', 'success', 2000);
+        
+        // Refresh the results to show updated vote counts
+        if (searchResults.length > 0) {
+            // Re-fetch the specific recommendation to get updated vote counts
+            const updatedRecommendation = await apiRequest(`/api/search/recommendations/${recommendationId}`);
+            const index = searchResults.findIndex(r => r.id == recommendationId);
+            if (index !== -1) {
+                searchResults[index] = updatedRecommendation;
+                renderSearchResults(searchResults);
+            }
+        }
+        
+        // Refresh voting dashboard
+        loadVotingDashboard();
+        
+    } catch (error) {
+        console.error('Error casting vote:', error);
+        showAlert('Error casting vote. Please try again.', 'danger');
+    }
+}
+
+async function showActivityDetails(activityId) {
+    try {
+        const activity = await apiRequest(`/api/search/recommendations/${activityId}`);
+        
+        document.getElementById('activityDetailTitle').textContent = activity.name;
+        document.getElementById('activityDetailBody').innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    ${activity.primary_image_url ? 
+                        `<img src="${activity.primary_image_url}" class="img-fluid rounded mb-3" alt="${activity.name}">` :
+                        `<div class="bg-light rounded d-flex align-items-center justify-content-center mb-3" style="height: 200px;">
+                            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                         </div>`
+                    }
+                </div>
+                <div class="col-md-6">
+                    <h6>Details</h6>
+                    <p>${activity.description || 'No description available'}</p>
+                    
+                    <h6>Information</h6>
+                    <ul class="list-unstyled">
+                        <li><strong>Category:</strong> ${activity.category}</li>
+                        <li><strong>Cost:</strong> ${activity.estimated_cost > 0 ? `$${activity.estimated_cost}` : 'Free'}</li>
+                        ${activity.estimated_duration_hours ? `<li><strong>Duration:</strong> ${activity.estimated_duration_hours} hours</li>` : ''}
+                        ${activity.external_rating ? `<li><strong>Rating:</strong> ${activity.external_rating.toFixed(1)}/5 (${activity.external_review_count} reviews)</li>` : ''}
+                        ${activity.difficulty_level ? `<li><strong>Difficulty:</strong> ${activity.difficulty_level}</li>` : ''}
+                        ${activity.age_appropriate ? `<li><strong>Age Group:</strong> ${activity.age_appropriate}</li>` : ''}
+                    </ul>
+                    
+                    ${activity.address ? `
+                        <h6>Location</h6>
+                        <p>${activity.location_name || ''}</p>
+                        <p class="text-muted small">${activity.address}</p>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <h6>Family Votes</h6>
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-success fs-6">
+                        <i class="bi bi-heart-fill"></i> ${activity.vote_summary.positive} Likes
+                    </span>
+                    <span class="badge bg-danger fs-6">
+                        <i class="bi bi-x-circle-fill"></i> ${activity.vote_summary.negative} Dislikes
+                    </span>
+                    <span class="badge bg-primary fs-6">
+                        Score: ${activity.vote_summary.score}
+                    </span>
+                </div>
+            </div>
+        `;
+        
+        // Set up the add to schedule button
+        document.getElementById('addToScheduleBtn').onclick = () => addToSchedule(activity);
+        
+        const modal = new bootstrap.Modal(document.getElementById('activityDetailModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error loading activity details:', error);
+        showAlert('Error loading activity details', 'danger');
+    }
+}
+
+function addToSchedule(activity) {
+    // Store activity data for the daily planner
+    localStorage.setItem('pendingActivity', JSON.stringify({
+        name: activity.name,
+        description: activity.description,
+        category: activity.category,
+        location_name: activity.location_name,
+        address: activity.address,
+        estimated_cost: activity.estimated_cost,
+        notes: `Added from discovery (ID: ${activity.id})`
+    }));
+    
+    // Close modal and redirect to daily planner
+    const modal = bootstrap.Modal.getInstance(document.getElementById('activityDetailModal'));
+    modal.hide();
+    
+    showAlert('Activity ready to schedule! Redirecting to daily planner...', 'success', 2000);
+    
+    setTimeout(() => {
+        window.location.href = `/daily-planner?trip_id=${currentTripId}`;
+    }, 2000);
+}
+
+async function loadVotingDashboard() {
+    if (!currentTripId) return;
+    
+    try {
+        const dashboard = await apiRequest(`/api/voting/dashboard/${currentTripId}`);
+        
+        document.getElementById('votingDashboard').style.display = 'block';
+        
+        // Render voting summary
+        const summaryContainer = document.getElementById('votingSummary');
+        summaryContainer.innerHTML = `
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-primary">${dashboard.voting_statistics.total_recommendations}</h4>
+                    <small class="text-muted">Activities Found</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-success">${dashboard.voting_statistics.total_votes}</h4>
+                    <small class="text-muted">Total Votes</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-info">${dashboard.family_members.length}</h4>
+                    <small class="text-muted">Family Members</small>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="text-center">
+                    <h4 class="text-warning">${Math.round(dashboard.voting_statistics.voting_participation_rate * 100)}%</h4>
+                    <small class="text-muted">Participation</small>
+                </div>
+            </div>
+        `;
+        
+        // Render top voted activities
+        const topActivities = dashboard.recommendations_with_votes
+            .sort((a, b) => b.vote_summary.score - a.vote_summary.score)
+            .slice(0, 5);
+        
+        const topActivitiesContainer = document.getElementById('topVotedActivities');
+        if (topActivities.length > 0) {
+            topActivitiesContainer.innerHTML = `
+                <h6>Top Voted Activities</h6>
+                <div class="list-group">
+                    ${topActivities.map(rec => `
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>${rec.recommendation_name}</span>
+                            <div>
+                                <span class="badge bg-success me-1">${rec.vote_summary.positive}</span>
+                                <span class="badge bg-danger me-1">${rec.vote_summary.negative}</span>
+                                <span class="badge bg-primary">Score: ${rec.vote_summary.score}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else {
+            topActivitiesContainer.innerHTML = `
+                <p class="text-muted text-center">No voted activities yet. Start searching and voting!</p>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Error loading voting dashboard:', error);
+    }
+}
+
+function toggleView(view) {
+    // Update active button
+    document.querySelectorAll('[data-view]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[data-view="${view}"]`).classList.add('active');
+    
+    // Re-render results if we have any
+    if (searchResults.length > 0) {
+        renderSearchResults(searchResults);
+    }
+}
+
+function clearSearch() {
+    document.getElementById('searchForm').reset();
+    document.getElementById('searchResults').classList.add('d-none');
+    searchResults = [];
+}
+
+function getCategoryColor(category) {
+    const colors = {
+        'sightseeing': 'primary',
+        'food': 'success',
+        'shopping': 'warning',
+        'rest': 'info',
+        'transportation': 'secondary'
+    };
+    return colors[category] || 'secondary';
+}
+
+// 收藏功能
+async function toggleFavorite(recommendationId, buttonElement) {
+    if (!currentTripId) {
+        showAlert('请先选择旅行计划', 'warning');
+        return;
+    }
+    
+    try {
+        // 获取家庭成员（演示用第一个成员）
+        const familyMembers = await apiRequest(`/api/family-members/?trip_id=${currentTripId}`);
+        if (familyMembers.length === 0) {
+            showAlert('未找到家庭成员', 'warning');
+            return;
+        }
+        
+        const familyMemberId = familyMembers[0].id;
+        
+        // 检查是否已收藏
+        const checkResponse = await apiRequest(`/api/favorites/check/${recommendationId}/member/${familyMemberId}`);
+        
+        if (checkResponse.is_favorited) {
+            // 取消收藏
+            await apiRequest(`/api/favorites/recommendation/${recommendationId}/member/${familyMemberId}`, {
+                method: 'DELETE'
+            });
+            
+            buttonElement.classList.remove('btn-danger');
+            buttonElement.classList.add('btn-outline-danger');
+            buttonElement.innerHTML = '<i class="bi bi-heart"></i>';
+            showAlert('已取消收藏', 'info', 2000);
+        } else {
+            // 添加收藏
+            await apiRequest('/api/favorites/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    recommendation_id: recommendationId,
+                    family_member_id: familyMemberId,
+                    notes: ''
+                })
+            });
+            
+            buttonElement.classList.remove('btn-outline-danger');
+            buttonElement.classList.add('btn-danger');
+            buttonElement.innerHTML = '<i class="bi bi-heart-fill"></i>';
+            showAlert('已添加到收藏', 'success', 2000);
+        }
+        
+        // 更新收藏计数
+        updateFavoritesCount();
+        
+    } catch (error) {
+        console.error('Error toggling favorite:', error);
+        showAlert('收藏操作失败，请重试', 'danger');
+    }
+}
+
+// 更新收藏计数
+async function updateFavoritesCount() {
+    if (!currentTripId) return;
+    
+    try {
+        const familyMembers = await apiRequest(`/api/family-members/?trip_id=${currentTripId}`);
+        if (familyMembers.length === 0) return;
+        
+        const familyMemberId = familyMembers[0].id;
+        const favorites = await apiRequest(`/api/favorites/?family_member_id=${familyMemberId}&trip_id=${currentTripId}`);
+        
+        document.getElementById('favoritesCount').textContent = favorites.length;
+    } catch (error) {
+        console.error('Error updating favorites count:', error);
+    }
+}
+
+// 加载收藏列表
+async function loadFavorites() {
+    if (!currentTripId) return;
+
+    const refreshBtn = document.getElementById('refreshFavoritesBtn');
+    refreshBtn.classList.add('disabled');
+    refreshBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> 刷新';
+
+    try {
+        const familyMembers = await apiRequest(`/api/family-members/?trip_id=${currentTripId}`);
+        if (familyMembers.length === 0) {
+            renderFavoritesResults([]);
+            return;
+        }
+
+        const familyMemberId = familyMembers[0].id;
+        const sortBy = document.getElementById('favoritesSortBy').value || 'favorite_date';
+
+        const response = await apiRequest(`/api/favorites/list/${familyMemberId}?trip_id=${currentTripId}&page_size=50`);
+        const favorites = sortFavorites(response.recommendations, sortBy);
+        
+        // 更新计数器
+        updateFavoritesCount();
+        
+        renderFavoritesResults(favorites);
+
+    } catch (error) {
+        console.error('Error loading favorites:', error);
+        showAlert('无法加载收藏列表，请稍后重试。', 'danger');
+    } finally {
+        refreshBtn.classList.remove('disabled');
+        refreshBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i> 刷新';
+    }
+}
+
+// 渲染收藏列表
+function renderFavoritesResults(favorites) {
+    const container = document.getElementById('favoritesResults');
+
+    if (favorites.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="bi bi-heart" style="font-size: 3rem; color: #6c757d;"></i>
+                <h5 class="text-muted mt-3">还没有收藏的活动</h5>
+                <p class="text-muted">在搜索结果中点击心形按钮来收藏活动</p>
+                <button class="btn btn-primary mt-3" onclick="switchToSearchAndDemo()">
+                    <i class="bi bi-search"></i> 开始搜索活动
+                </button>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="row">
+            ${favorites.map(act => `
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm activity-favorite-card" data-activity-id="${act.id}">
+                        <div class="position-relative">
+                            ${act.primary_image_url ? 
+                                `<img src="${act.primary_image_url}" class="card-img-top" style="height: 180px; object-fit: cover;" alt="${act.name}">` :
+                                `<div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                    <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+                                </div>`}
+                            <div class="position-absolute top-0 end-0 m-2">
+                                <span class="badge bg-${getCategoryColor(act.category)}">${act.category}</span>
+                            </div>
+                            <div class="position-absolute top-0 start-0 m-2">
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-heart-fill"></i>
+                                </span>
+                            </div>
+                            ${act.external_rating ? 
+                                `<div class="position-absolute bottom-0 start-0 m-2">
+                                    <span class="badge bg-dark bg-opacity-75">
+                                        <i class="bi bi-star-fill text-warning"></i> ${act.external_rating.toFixed(1)}
+                                    </span>
+                                </div>` : ''}
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h6 class="card-title">${act.name}</h6>
+                            <p class="card-text text-muted small flex-grow-1">${act.description || '暂无描述'}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <div>
+                                    ${act.estimated_cost > 0 ? 
+                                        `<span class="text-success fw-bold">$${act.estimated_cost}</span>` :
+                                        `<span class="text-muted">免费</span>`
+                                    }
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="showActivityDetails(${act.id})">详情</button>
+                                    <button class="btn btn-sm btn-danger" onclick="toggleFavorite(${act.id}, this)">
+                                        <i class="bi bi-heart-fill"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`).join('')}
+        </div>`;
+}
+
+// 排序收藏
+function sortFavorites(list, sortBy) {
+    const arr = [...list];
+    if (sortBy === 'popularity_score') {
+        arr.sort((a, b) => (b.popularity_score || 0) - (a.popularity_score || 0));
+    } else if (sortBy === 'external_rating') {
+        arr.sort((a, b) => (b.external_rating || 0) - (a.external_rating || 0));
+    } else if (sortBy === 'estimated_cost') {
+        arr.sort((a, b) => (a.estimated_cost || 0) - (b.estimated_cost || 0));
+    } else { // favorite_date
+        arr.sort((a, b) => new Date(b.discovery_date) - new Date(a.discovery_date));
+    }
+    return arr;
+}
+
+// 检查并更新收藏按钮状态
+async function updateFavoriteButtons() {
+    if (!currentTripId) return;
+    
+    try {
+        const familyMembers = await apiRequest(`/api/family-members/?trip_id=${currentTripId}`);
+        if (familyMembers.length === 0) return;
+        
+        const familyMemberId = familyMembers[0].id;
+        const favoriteButtons = document.querySelectorAll('.favorite-btn');
+        
+        for (const button of favoriteButtons) {
+            const recommendationId = button.getAttribute('data-recommendation-id');
+            const checkResponse = await apiRequest(`/api/favorites/check/${recommendationId}/member/${familyMemberId}`);
+            
+            if (checkResponse.is_favorited) {
+                button.classList.remove('btn-outline-danger');
+                button.classList.add('btn-danger');
+                button.innerHTML = '<i class="bi bi-heart-fill"></i>';
+            } else {
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-outline-danger');
+                button.innerHTML = '<i class="bi bi-heart"></i>';
+            }
+        }
+    } catch (error) {
+        console.error('Error updating favorite buttons:', error);
+    }
+}
+
+// 绑定收藏相关事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 收藏标签页事件
+    document.getElementById('favorites-tab').addEventListener('shown.bs.tab', () => {
+        loadFavorites();
+        document.getElementById('searchResults').classList.add('d-none');
+    });
+
+    document.getElementById('refreshFavoritesBtn').addEventListener('click', loadFavorites);
+    
+    // 排序变更事件
+    document.getElementById('favoritesSortBy').addEventListener('change', loadFavorites);
+});
+
+// 原有的tab事件需要更新
+document.getElementById('search-tab').addEventListener('shown.bs.tab', () => {
+    document.getElementById('searchResults').classList.remove('d-none');
+});
+
+// 从历史页面切换到搜索页面并填入示例搜索
+function switchToSearchAndDemo() {
+    // 切换到搜索标签页
+    const searchTab = document.getElementById('search-tab');
+    const searchTabInstance = new bootstrap.Tab(searchTab);
+    searchTabInstance.show();
+    
+    // 填入示例搜索内容
+    document.getElementById('searchQuery').value = '家庭餐厅';
+    document.getElementById('searchCategory').value = 'food';
+    
+    // 自动聚焦到搜索按钮
+    setTimeout(() => {
+        document.getElementById('searchBtn').focus();
+        // 可选：自动执行搜索
+        // document.getElementById('searchBtn').click();
+    }, 100);
+}
+</script>
+{% endblock %}

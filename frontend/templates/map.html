@@ -1,0 +1,557 @@
+{% extends "base.html" %}
+
+{% block title %}Map View - Family Trip Planner{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>
+                <i class="bi bi-geo-alt"></i>
+                Trip Map
+            </h1>
+            <div>
+                <select id="tripSelect" class="form-select d-inline-block me-2" style="width: auto;">
+                    <option value="">Select a trip...</option>
+                </select>
+                <button class="btn btn-primary" id="centerMapBtn" disabled>
+                    <i class="bi bi-geo-alt"></i>
+                    Center Map
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Controls -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-3">
+                <div class="row align-items-center">
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showWeatherLayer" checked>
+                            <label class="form-check-label" for="showWeatherLayer">
+                                <i class="bi bi-cloud-sun"></i>
+                                Weather Layer
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showActivities" checked>
+                            <label class="form-check-label" for="showActivities">
+                                <i class="bi bi-calendar-check"></i>
+                                Activity Markers
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle"></i>
+                            Click markers for details
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Map Container -->
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body p-0">
+                <div id="map" style="height: 600px;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar with trip info and activities -->
+    <div class="col-lg-4">
+        <!-- Trip Info -->
+        <div id="tripInfoCard" class="card mb-3 d-none">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Trip Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <h6 id="tripTitle"></h6>
+                <p class="text-muted mb-2">
+                    <i class="bi bi-geo-alt"></i>
+                    <span id="tripDestination"></span>
+                </p>
+                <p class="text-muted mb-2">
+                    <i class="bi bi-calendar-range"></i>
+                    <span id="tripDates"></span>
+                </p>
+                <p class="text-muted mb-2">
+                    <i class="bi bi-house"></i>
+                    <span id="accommodationAddress"></span>
+                </p>
+                <div id="currentWeather" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <!-- Activities List -->
+        <div id="activitiesCard" class="card d-none">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-list-check"></i>
+                    Activities on Map
+                </h5>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                <div id="activitiesList">
+                    <p class="text-muted">No activities with locations found.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Legend -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-map"></i>
+                    Map Legend
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <i class="bi bi-house-fill text-primary"></i>
+                    <span class="ms-2">Accommodation</span>
+                </div>
+                <div class="mb-2">
+                    <i class="bi bi-camera-fill text-success"></i>
+                    <span class="ms-2">Sightseeing</span>
+                </div>
+                <div class="mb-2">
+                    <i class="bi bi-cup-hot-fill text-warning"></i>
+                    <span class="ms-2">Food & Dining</span>
+                </div>
+                <div class="mb-2">
+                    <i class="bi bi-bag-fill text-info"></i>
+                    <span class="ms-2">Shopping</span>
+                </div>
+                <div class="mb-2">
+                    <i class="bi bi-geo-alt-fill text-secondary"></i>
+                    <span class="ms-2">Other Activities</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', path='/js/map.js') }}"></script>
+<script src="{{ url_for('static', path='/js/weather.js') }}"></script>
+
+<script>
+let map;
+let currentTripId = null;
+let accommodationMarker = null;
+let activityMarkers = [];
+let weatherLayer = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize map
+    initializeMap();
+    
+    // Load trips
+    loadTrips();
+    
+    // Setup event handlers
+    setupEventHandlers();
+    
+    // Check URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get('trip_id');
+    if (tripId) {
+        setTimeout(() => {
+            document.getElementById('tripSelect').value = tripId;
+            loadTripOnMap(tripId);
+        }, 500);
+    }
+});
+
+function initializeMap() {
+    // Initialize with Osaka coordinates as default
+    map = L.map('map').setView([34.6937, 135.5023], 13);
+    
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // Add weather layer if enabled
+    // Note: This would require OpenWeatherMap API key in production
+    // addWeatherLayer();
+}
+
+async function loadTrips() {
+    try {
+        const trips = await apiRequest('/api/trips/');
+        const select = document.getElementById('tripSelect');
+        
+        select.innerHTML = '<option value="">Select a trip...</option>';
+        
+        trips.forEach(trip => {
+            const option = document.createElement('option');
+            option.value = trip.id;
+            option.textContent = `${trip.name} - ${trip.destination}`;
+            select.appendChild(option);
+        });
+        
+    } catch (error) {
+        console.error('Error loading trips:', error);
+        showAlert('Error loading trips', 'danger');
+    }
+}
+
+function setupEventHandlers() {
+    // Trip selection
+    document.getElementById('tripSelect').addEventListener('change', function() {
+        const tripId = this.value;
+        if (tripId) {
+            loadTripOnMap(tripId);
+        } else {
+            clearMap();
+        }
+    });
+    
+    // Center map button
+    document.getElementById('centerMapBtn').addEventListener('click', function() {
+        if (accommodationMarker) {
+            map.setView(accommodationMarker.getLatLng(), 13);
+        }
+    });
+    
+    // Layer toggles
+    document.getElementById('showWeatherLayer').addEventListener('change', function() {
+        toggleWeatherLayer(this.checked);
+    });
+    
+    document.getElementById('showActivities').addEventListener('change', function() {
+        toggleActivityMarkers(this.checked);
+    });
+}
+
+async function loadTripOnMap(tripId) {
+    try {
+        showLoading(true);
+        currentTripId = tripId;
+        
+        // Load trip details
+        const trip = await apiRequest(`/api/trips/${tripId}`);
+        updateTripInfo(trip);
+        
+        // Add accommodation marker
+        if (trip.accommodation_lat && trip.accommodation_lon) {
+            addAccommodationMarker(trip);
+            document.getElementById('centerMapBtn').disabled = false;
+        }
+        
+        // Load and display activities
+        const activities = await apiRequest(`/api/activities/?trip_id=${tripId}`);
+        const activitiesWithCoords = activities.filter(a => a.latitude && a.longitude);
+        
+        addActivityMarkers(activitiesWithCoords);
+        updateActivitiesList(activitiesWithCoords);
+        
+        // Load weather data
+        loadWeatherData(trip);
+        
+        // Show info cards
+        document.getElementById('tripInfoCard').classList.remove('d-none');
+        if (activitiesWithCoords.length > 0) {
+            document.getElementById('activitiesCard').classList.remove('d-none');
+        }
+        
+    } catch (error) {
+        console.error('Error loading trip on map:', error);
+        showAlert('Error loading trip data', 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function updateTripInfo(trip) {
+    document.getElementById('tripTitle').textContent = trip.name;
+    document.getElementById('tripDestination').textContent = trip.destination;
+    document.getElementById('tripDates').textContent = 
+        `${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}`;
+    document.getElementById('accommodationAddress').textContent = trip.accommodation_address;
+}
+
+function addAccommodationMarker(trip) {
+    // Remove existing accommodation marker
+    if (accommodationMarker) {
+        map.removeLayer(accommodationMarker);
+    }
+    
+    // Create custom icon for accommodation
+    const accommodationIcon = L.divIcon({
+        html: '<i class="bi bi-house-fill text-primary" style="font-size: 1.5rem;"></i>',
+        iconSize: [30, 30],
+        className: 'custom-div-icon'
+    });
+    
+    accommodationMarker = L.marker([trip.accommodation_lat, trip.accommodation_lon], {
+        icon: accommodationIcon
+    }).addTo(map);
+    
+    accommodationMarker.bindPopup(`
+        <div class="popup-content">
+            <h6><i class="bi bi-house"></i> Accommodation</h6>
+            <p class="mb-1"><strong>${trip.name}</strong></p>
+            <p class="mb-0">${trip.accommodation_address}</p>
+        </div>
+    `);
+    
+    // Center map on accommodation
+    map.setView([trip.accommodation_lat, trip.accommodation_lon], 13);
+}
+
+function addActivityMarkers(activities) {
+    // Clear existing activity markers
+    clearActivityMarkers();
+    
+    activities.forEach(activity => {
+        const icon = getActivityIcon(activity.category);
+        
+        const marker = L.marker([activity.latitude, activity.longitude], {
+            icon: icon
+        }).addTo(map);
+        
+        marker.bindPopup(`
+            <div class="popup-content">
+                <h6><i class="bi bi-${getActivityIconName(activity.category)}"></i> ${activity.name}</h6>
+                <p class="mb-1">
+                    <span class="badge bg-${getCategoryColor(activity.category)}">${activity.category}</span>
+                    <span class="badge bg-${getPriorityColor(activity.priority)} ms-1">${activity.priority.replace('_', ' ')}</span>
+                </p>
+                <p class="mb-1"><strong>Date:</strong> ${formatDate(activity.activity_date)}</p>
+                <p class="mb-1"><strong>Time:</strong> ${activity.time_slot}</p>
+                ${activity.location_name ? `<p class="mb-1"><strong>Location:</strong> ${activity.location_name}</p>` : ''}
+                ${activity.estimated_cost > 0 ? `<p class="mb-1"><strong>Cost:</strong> $${activity.estimated_cost}</p>` : ''}
+                ${activity.description ? `<p class="mb-0">${activity.description}</p>` : ''}
+            </div>
+        `);
+        
+        // Add click handler to highlight in sidebar
+        marker.on('click', function() {
+            highlightActivity(activity.id);
+        });
+        
+        activityMarkers.push(marker);
+    });
+    
+    // Fit map to show all markers if we have activities
+    if (activities.length > 0) {
+        const group = new L.featureGroup([accommodationMarker, ...activityMarkers]);
+        map.fitBounds(group.getBounds().pad(0.1));
+    }
+}
+
+function getActivityIcon(category) {
+    const iconName = getActivityIconName(category);
+    const color = getCategoryColor(category);
+    
+    return L.divIcon({
+        html: `<i class="bi bi-${iconName} text-${color}" style="font-size: 1.2rem;"></i>`,
+        iconSize: [25, 25],
+        className: 'custom-div-icon'
+    });
+}
+
+function getActivityIconName(category) {
+    const icons = {
+        'sightseeing': 'camera-fill',
+        'food': 'cup-hot-fill',
+        'shopping': 'bag-fill',
+        'rest': 'house-fill',
+        'transportation': 'train-front-fill'
+    };
+    return icons[category] || 'geo-alt-fill';
+}
+
+function updateActivitiesList(activities) {
+    const container = document.getElementById('activitiesList');
+    
+    if (activities.length === 0) {
+        container.innerHTML = '<p class="text-muted">No activities with locations found.</p>';
+        return;
+    }
+    
+    container.innerHTML = activities.map(activity => `
+        <div class="activity-item mb-2 p-2 border rounded" data-activity-id="${activity.id}" style="cursor: pointer;">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h6 class="mb-1">${activity.name}</h6>
+                    <small class="text-muted">
+                        ${formatDate(activity.activity_date)} - ${activity.time_slot}
+                    </small>
+                    <br>
+                    <span class="badge bg-${getCategoryColor(activity.category)} mt-1">${activity.category}</span>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" onclick="centerOnActivity(${activity.latitude}, ${activity.longitude})">
+                    <i class="bi bi-geo-alt"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add click handlers to activity items
+    container.querySelectorAll('.activity-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const activityId = this.dataset.activityId;
+            const activity = activities.find(a => a.id == activityId);
+            if (activity) {
+                centerOnActivity(activity.latitude, activity.longitude);
+                highlightActivity(activityId);
+            }
+        });
+    });
+}
+
+function centerOnActivity(lat, lon) {
+    map.setView([lat, lon], 16);
+}
+
+function highlightActivity(activityId) {
+    // Remove existing highlights
+    document.querySelectorAll('.activity-item').forEach(item => {
+        item.classList.remove('bg-light');
+    });
+    
+    // Highlight selected activity
+    const item = document.querySelector(`[data-activity-id="${activityId}"]`);
+    if (item) {
+        item.classList.add('bg-light');
+    }
+}
+
+async function loadWeatherData(trip) {
+    try {
+        const weatherData = await apiRequest(`/api/trips/${trip.id}/weather`);
+        
+        if (weatherData && weatherData.current) {
+            const current = weatherData.current;
+            document.getElementById('currentWeather').innerHTML = `
+                <div class="border rounded p-2">
+                    <h6 class="mb-2">
+                        <i class="bi bi-cloud-sun"></i>
+                        Current Weather
+                    </h6>
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>${current.temperature}°C</strong>
+                            <br>
+                            <small>${current.description}</small>
+                        </div>
+                        <div class="text-end">
+                            <small>Feels like ${current.feels_like}°C</small>
+                            <br>
+                            <small>Humidity: ${current.humidity}%</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading weather data:', error);
+    }
+}
+
+function clearMap() {
+    // Clear accommodation marker
+    if (accommodationMarker) {
+        map.removeLayer(accommodationMarker);
+        accommodationMarker = null;
+    }
+    
+    // Clear activity markers
+    clearActivityMarkers();
+    
+    // Hide info cards
+    document.getElementById('tripInfoCard').classList.add('d-none');
+    document.getElementById('activitiesCard').classList.add('d-none');
+    
+    // Disable center button
+    document.getElementById('centerMapBtn').disabled = true;
+    
+    // Reset map view
+    map.setView([34.6937, 135.5023], 13);
+}
+
+function clearActivityMarkers() {
+    activityMarkers.forEach(marker => {
+        map.removeLayer(marker);
+    });
+    activityMarkers = [];
+}
+
+function toggleWeatherLayer(enabled) {
+    // TODO: Implement weather layer toggle
+    // This would require OpenWeatherMap API integration
+    console.log('Weather layer toggle:', enabled);
+}
+
+function toggleActivityMarkers(enabled) {
+    activityMarkers.forEach(marker => {
+        if (enabled) {
+            marker.addTo(map);
+        } else {
+            map.removeLayer(marker);
+        }
+    });
+}
+
+function getCategoryColor(category) {
+    const colors = {
+        'sightseeing': 'success',
+        'food': 'warning',
+        'shopping': 'info',
+        'rest': 'primary',
+        'transportation': 'secondary'
+    };
+    return colors[category] || 'secondary';
+}
+
+function getPriorityColor(priority) {
+    const colors = {
+        'must_do': 'danger',
+        'would_like': 'primary',
+        'optional': 'secondary'
+    };
+    return colors[priority] || 'secondary';
+}
+</script>
+
+<style>
+.custom-div-icon {
+    background: white;
+    border: 2px solid #333;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 26px;
+}
+
+.popup-content {
+    min-width: 200px;
+}
+
+.activity-item:hover {
+    background-color: #f8f9fa !important;
+}
+
+#map {
+    border-radius: 0.375rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,458 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Family Trip Planner{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="bi bi-house-door"></i>
+            <span data-i18n="nav.dashboard">Trip Dashboard</span>
+        </h1>
+    </div>
+</div>
+
+<!-- Trip Overview Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    <span data-i18n="dashboard.trip_overview">Trip Overview</span>
+                </h5>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#tripModal">
+                    <i class="bi bi-plus-circle"></i>
+                    <span data-i18n="trip.new_trip">New Trip</span>
+                </button>
+            </div>
+            <div class="card-body">
+                <div id="tripOverview">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-airplane" style="font-size: 3rem;"></i>
+                        <p data-i18n="trip.no_trips">No trips planned yet. Create your first trip to get started!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats Section -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title" data-i18n="dashboard.total_trips">Total Trips</h5>
+                        <h2 id="totalTrips">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-airplane" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title" data-i18n="dashboard.activities">Activities</h5>
+                        <h2 id="totalActivities">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-calendar-check" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title" data-i18n="dashboard.family_members">Family Members</h5>
+                        <h2 id="totalMembers">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title" data-i18n="dashboard.total_budget">Total Budget</h5>
+                        <h2 id="totalBudget">$0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-currency-dollar" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activities and Weather -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clock-history"></i>
+                    <span data-i18n="dashboard.recent_activities">Recent Activities</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="recentActivities">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                        <p data-i18n="dashboard.no_activities">No activities planned yet.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-cloud-sun"></i>
+                    <span data-i18n="dashboard.weather_update">Weather Update</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="weatherWidget">
+                    <div class="text-center text-muted">
+                        <i class="bi bi-cloud-slash" style="font-size: 2rem;"></i>
+                        <p data-i18n="dashboard.weather_placeholder">Weather data will appear when you add a trip destination.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trip Creation Modal -->
+<div class="modal fade" id="tripModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-i18n="trip.create_new_trip">Create New Trip</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="tripForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tripName" class="form-label" data-i18n="trip.trip_name">Trip Name</label>
+                            <input type="text" class="form-control" id="tripName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="destination" class="form-label" data-i18n="trip.destination">Destination</label>
+                            <input type="text" class="form-control" id="destination" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="startDate" class="form-label" data-i18n="trip.start_date">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="endDate" class="form-label" data-i18n="trip.end_date">End Date</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="accommodationAddress" class="form-label" data-i18n="trip.accommodation">Accommodation Address</label>
+                        <textarea class="form-control" id="accommodationAddress" rows="2" required></textarea>
+                        <div class="form-text">Enter the full address of where you'll be staying</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="totalBudget" class="form-label" data-i18n="trip.budget">Total Budget</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="totalBudget" min="0" step="0.01">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="createTripBtn">
+                    <i class="bi bi-plus-circle"></i>
+                    <span data-i18n="trip.create_trip">Create Trip</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize dashboard
+    loadDashboardData();
+    
+    // Set up form handlers
+    setupTripForm();
+    
+    // Set date defaults
+    setDateDefaults();
+});
+
+function setDateDefaults() {
+    // Set default dates to the Osaka trip
+    document.getElementById('startDate').value = '2025-07-27';
+    document.getElementById('endDate').value = '2025-08-02';
+    document.getElementById('tripName').value = 'Osaka Family Trip';
+    document.getElementById('destination').value = 'Osaka, Japan';
+    document.getElementById('accommodationAddress').value = '大阪市浪速区幸町1丁目2-24';
+    document.getElementById('totalBudget').value = '5000';
+}
+
+async function loadDashboardData() {
+    try {
+        showLoading(true);
+        
+        // Load trips data
+        const trips = await apiRequest('/api/trips/');
+        updateTripOverview(trips);
+        await updateStats(trips);
+        
+        // Load recent activities if we have trips
+        if (trips.length > 0) {
+            loadRecentActivities(trips[0].id);
+            loadWeatherData(trips[0].id);
+        }
+        
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        showAlert('Error loading dashboard data', 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function updateTripOverview(trips) {
+    const container = document.getElementById('tripOverview');
+    
+    if (trips.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="bi bi-airplane" style="font-size: 3rem;"></i>
+                <p>No trips planned yet. Create your first trip to get started!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const trip = trips[0]; // Show the first trip for now
+    container.innerHTML = `
+        <div class="row">
+            <div class="col-md-8">
+                <h4>${trip.name}</h4>
+                <p class="text-muted mb-2">
+                    <i class="bi bi-geo-alt"></i>
+                    ${trip.destination}
+                </p>
+                <p class="text-muted mb-2">
+                    <i class="bi bi-calendar-range"></i>
+                    ${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}
+                </p>
+                <p class="text-muted">
+                    <i class="bi bi-currency-dollar"></i>
+                    Budget: $${trip.total_budget}
+                </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-outline-primary" onclick="viewTrip(${trip.id})">
+                    <i class="bi bi-eye"></i>
+                    View Details
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function updateStats(trips) {
+    // Update basic stats
+    document.getElementById('totalTrips').textContent = trips.length;
+    
+    let totalBudget = 0;
+    trips.forEach(trip => {
+        totalBudget += trip.total_budget || 0;
+    });
+    
+    document.getElementById('totalBudget').textContent = `$${totalBudget.toLocaleString()}`;
+    
+    // Load actual activity and member counts
+    try {
+        let totalActivities = 0;
+        let totalMembers = 0;
+        
+        // Get counts for each trip
+        for (const trip of trips) {
+            // Get activities count for this trip
+            const activities = await apiRequest(`/api/activities/?trip_id=${trip.id}`);
+            totalActivities += activities.length;
+            
+            // Get family members count for this trip
+            const members = await apiRequest(`/api/family-members/?trip_id=${trip.id}`);
+            totalMembers += members.length;
+        }
+        
+        document.getElementById('totalActivities').textContent = totalActivities;
+        document.getElementById('totalMembers').textContent = totalMembers;
+        
+    } catch (error) {
+        console.error('Error loading stats:', error);
+        // Fallback to 0 if there's an error
+        document.getElementById('totalActivities').textContent = '0';
+        document.getElementById('totalMembers').textContent = '0';
+    }
+}
+
+async function loadRecentActivities(tripId) {
+    try {
+        const activities = await apiRequest(`/api/activities/?trip_id=${tripId}&limit=5`);
+        const container = document.getElementById('recentActivities');
+        
+        if (activities.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="bi bi-calendar-x" style="font-size: 2rem;"></i>
+                    <p>No activities planned yet.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = activities.map(activity => `
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                    <h6 class="mb-1">${activity.name}</h6>
+                    <small class="text-muted">
+                        ${formatDate(activity.activity_date)} - ${activity.time_slot}
+                    </small>
+                </div>
+                <span class="badge bg-${getCategoryColor(activity.category)}">${activity.category}</span>
+            </div>
+        `).join('');
+        
+    } catch (error) {
+        console.error('Error loading activities:', error);
+    }
+}
+
+async function loadWeatherData(tripId) {
+    try {
+        const weatherData = await apiRequest(`/api/trips/${tripId}/weather`);
+        const container = document.getElementById('weatherWidget');
+        
+        if (!weatherData || !weatherData.current) {
+            container.innerHTML = `
+                <div class="text-center text-muted">
+                    <i class="bi bi-cloud-slash" style="font-size: 2rem;"></i>
+                    <p>Weather data unavailable</p>
+                </div>
+            `;
+            return;
+        }
+        
+        const current = weatherData.current;
+        container.innerHTML = `
+            <div class="text-center">
+                <h3>${current.temperature}°C</h3>
+                <p class="mb-2">${current.description}</p>
+                <small class="text-muted">
+                    Feels like ${current.feels_like}°C<br>
+                    Humidity: ${current.humidity}%
+                </small>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading weather:', error);
+    }
+}
+
+function setupTripForm() {
+    document.getElementById('createTripBtn').addEventListener('click', async function() {
+        const form = document.getElementById('tripForm');
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const tripData = {
+            name: document.getElementById('tripName').value,
+            destination: document.getElementById('destination').value,
+            start_date: document.getElementById('startDate').value,
+            end_date: document.getElementById('endDate').value,
+            accommodation_address: document.getElementById('accommodationAddress').value,
+            total_budget: parseFloat(document.getElementById('totalBudget').value) || 0
+        };
+        
+        try {
+            showLoading(true);
+            
+            const newTrip = await apiRequest('/api/trips/', {
+                method: 'POST',
+                body: JSON.stringify(tripData)
+            });
+            
+            showAlert('Trip created successfully!', 'success');
+            
+            // Close modal and reload data
+            const modal = bootstrap.Modal.getInstance(document.getElementById('tripModal'));
+            modal.hide();
+            
+            form.reset();
+            setDateDefaults();
+            
+            loadDashboardData();
+            
+        } catch (error) {
+            console.error('Error creating trip:', error);
+            showAlert('Error creating trip. Please try again.', 'danger');
+        } finally {
+            showLoading(false);
+        }
+    });
+}
+
+function getCategoryColor(category) {
+    const colors = {
+        'sightseeing': 'primary',
+        'food': 'success',
+        'shopping': 'warning',
+        'rest': 'info',
+        'transportation': 'secondary'
+    };
+    return colors[category] || 'secondary';
+}
+
+function viewTrip(tripId) {
+    window.location.href = `/daily-planner?trip_id=${tripId}`;
+}
+</script>
+{% endblock %}

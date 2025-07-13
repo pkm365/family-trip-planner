@@ -1,0 +1,4015 @@
+{% extends "base.html" %}
+
+{% block title %}Daily Planner - Family Trip Planner{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="bi bi-calendar3"></i>
+                Daily Planner
+            </h1>
+            <div>
+                <select id="tripSelect" class="form-select d-inline-block" style="width: auto;">
+                    <option value="">Select a trip...</option>
+                </select>
+                <button class="btn btn-success ms-2" data-bs-toggle="modal" data-bs-target="#activityModal">
+                    <i class="bi bi-plus-circle"></i>
+                    Add Activity
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trip Info Bar -->
+<div id="tripInfoBar" class="d-none">
+    <div class="trip-info-card">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="trip-title mb-2" id="tripTitle">
+                    <i class="bi bi-house-heart-fill me-2 text-warm-primary"></i>
+                </h4>
+                <div class="trip-details">
+                    <span class="trip-detail-item">
+                        <i class="bi bi-geo-alt-fill text-warm-secondary"></i>
+                        <span id="tripDestination"></span>
+                    </span>
+                    <span class="trip-detail-item">
+                        <i class="bi bi-calendar-heart-fill text-warm-accent"></i>
+                        <span id="tripDates"></span>
+                    </span>
+                    <span class="trip-detail-item">
+                        <i class="bi bi-piggy-bank-fill text-warm-success"></i>
+                        Budget: $<span id="tripBudget"></span>
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-warm-primary" onclick="viewMap()">
+                    <i class="bi bi-map-fill"></i>
+                    Explore Map
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Family Corner Section -->
+<div id="familyCorner" class="d-none mb-4">
+    <div class="family-corner-card">
+        <div class="family-header mb-3">
+            <h5 class="family-title">
+                <i class="bi bi-people-fill text-warm-primary me-2"></i>
+                Our Family Journey
+                <span class="family-count-badge" id="familyCount">0</span>
+            </h5>
+            <button class="btn btn-warm-outline btn-sm" data-bs-toggle="modal" data-bs-target="#familyMemberModal">
+                <i class="bi bi-person-plus-fill"></i>
+                Add Family Member
+            </button>
+        </div>
+        <div class="family-members-container" id="familyMembersContainer">
+            <!-- Family member cards will be dynamically loaded here -->
+        </div>
+        
+        <!-- Family Wishlist Summary -->
+        <div class="family-wishlist-summary mt-3">
+            <h6 class="wishlist-title">
+                <i class="bi bi-star-fill text-warm-accent me-2"></i>
+                Family Wishes & Dreams
+            </h6>
+            <div class="wishlist-items" id="familyWishlistSummary">
+                <!-- Wishlist items will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Drag-to-Delete Zone (Hidden by default) -->
+<div id="deleteZone" class="alert alert-danger d-none position-fixed" style="top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; min-width: 300px; text-align: center; box-shadow: 0 8px 32px rgba(220, 53, 69, 0.3);">
+    <div class="delete-zone-content">
+        <i class="bi bi-trash-fill fs-1 text-danger"></i>
+        <h5 class="mt-2 mb-1">Delete Activity</h5>
+        <p class="mb-0 small">Drop here to remove from schedule</p>
+    </div>
+</div>
+
+<!-- Main Content with Sidebar -->
+<div class="row">
+    <!-- Enhanced Activity Showcase Sidebar -->
+    <div class="col-lg-3" id="showcaseSidebar" style="display: none;">
+        <div class="sidebar-container sticky-top" style="top: 1rem;">
+            <!-- Search Section -->
+            <div class="sidebar-search-section">
+                <div class="search-input-container">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" id="sidebarSearch" class="form-control search-input" placeholder="Search activities..." data-i18n="[placeholder]discovery.search_placeholder">
+                    <button class="btn btn-sm search-clear" id="clearSearch" style="display: none;">
+                        <i class="bi bi-x"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Activity Categories -->
+            <div class="sidebar-categories">
+                <!-- Favorites Section -->
+                <div class="category-section collapsed" data-category="favorites">
+                    <div class="category-header" onclick="toggleCategory('favorites')">
+                        <div class="category-title">
+                            <i class="bi bi-heart-fill category-icon"></i>
+                            <span class="category-name" data-i18n="voting.favorites">Favorites</span>
+                            <span class="category-count" id="favoritesCount">0</span>
+                        </div>
+                        <i class="bi bi-chevron-down category-toggle"></i>
+                    </div>
+                    <div class="category-content" id="favoritesContent">
+                        <div class="category-activities" id="favoritesActivities">
+                            <div class="sidebar-empty-state">
+                                <i class="bi bi-heart"></i>
+                                <h6>No Favorites Yet</h6>
+                                <p>Mark activities as favorites to see them here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Liked Section -->
+                <div class="category-section collapsed" data-category="liked">
+                    <div class="category-header" onclick="toggleCategory('liked')">
+                        <div class="category-title">
+                            <i class="bi bi-hand-thumbs-up-fill category-icon"></i>
+                            <span class="category-name" data-i18n="voting.liked">Liked</span>
+                            <span class="category-count" id="likedCount">0</span>
+                        </div>
+                        <i class="bi bi-chevron-down category-toggle"></i>
+                    </div>
+                    <div class="category-content" id="likedContent">
+                        <div class="category-activities" id="likedActivities">
+                            <div class="sidebar-empty-state">
+                                <i class="bi bi-hand-thumbs-up"></i>
+                                <h6>No Liked Activities</h6>
+                                <p>Vote up activities to see them here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Section -->
+                <div class="category-section collapsed" data-category="recent">
+                    <div class="category-header" onclick="toggleCategory('recent')">
+                        <div class="category-title">
+                            <i class="bi bi-clock category-icon"></i>
+                            <span class="category-name" data-i18n="sidebar.recent">Recent</span>
+                            <span class="category-count" id="recentCount">0</span>
+                        </div>
+                        <i class="bi bi-chevron-down category-toggle"></i>
+                    </div>
+                    <div class="category-content" id="recentContent">
+                        <div class="category-activities" id="recentActivities">
+                            <div class="sidebar-empty-state">
+                                <i class="bi bi-clock"></i>
+                                <h6>No Recent Activities</h6>
+                                <p>Recently viewed activities will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- All Activities (Legacy) -->
+                <div class="category-section" data-category="all">
+                    <div class="category-header" onclick="toggleCategory('all')">
+                        <div class="category-title">
+                            <i class="bi bi-collection category-icon"></i>
+                            <span class="category-name" data-i18n="voting.family_votes">All Recommended</span>
+                            <span class="category-count" id="allCount">0</span>
+                        </div>
+                        <i class="bi bi-chevron-down category-toggle"></i>
+                    </div>
+                    <div class="category-content" id="allContent">
+                        <div class="category-activities" id="showcaseActivities">
+                            <div class="sidebar-empty-state">
+                                <i class="bi bi-collection"></i>
+                                <h6>No Activities Found</h6>
+                                <p>Discover activities to start planning your trip</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="sidebar-actions">
+                <button class="btn btn-primary btn-sm w-100 mb-2" onclick="window.location.href='/discovery'">
+                    <i class="bi bi-plus-circle"></i>
+                    <span data-i18n="discovery.search">Discover More</span>
+                </button>
+                <button class="btn btn-outline-secondary btn-sm w-100" onclick="refreshSidebar()">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    <span data-i18n="sidebar.refresh">Refresh</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Daily Activities Grid -->
+    <div id="dailyActivitiesColumn" class="col-lg-12">
+        <div id="dailyActivitiesContainer">
+            <div class="text-center text-muted mt-5">
+                <i class="bi bi-calendar-x" style="font-size: 4rem;"></i>
+                <h4>Select a trip to view daily activities</h4>
+                <p>Choose a trip from the dropdown above to start planning your daily activities.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Creation Modal -->
+<div class="modal fade" id="activityModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-i18n="activity.add_activity">Add New Activity</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="activityForm">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="activityName" class="form-label" data-i18n="activity.activity_name">Activity Name</label>
+                            <input type="text" class="form-control" id="activityName" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="category" class="form-label" data-i18n="activity.category">Category</label>
+                            <select class="form-select" id="category" required>
+                                <option value="">Select category...</option>
+                                <option value="sightseeing" data-i18n="category.sightseeing">Sightseeing</option>
+                                <option value="food" data-i18n="category.food">Food</option>
+                                <option value="shopping" data-i18n="category.shopping">Shopping</option>
+                                <option value="rest" data-i18n="category.rest">Rest</option>
+                                <option value="transportation" data-i18n="category.transportation">Transportation</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label" data-i18n="activity.description">Description</label>
+                        <textarea class="form-control" id="description" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="activityDate" class="form-label" data-i18n="activity.date">Date</label>
+                            <input type="date" class="form-control" id="activityDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="timeSlot" class="form-label" data-i18n="activity.time_slot">Time Slot</label>
+                            <select class="form-select" id="timeSlot" required>
+                                <option value="">Select time...</option>
+                                <option value="morning" data-i18n="time.morning">Morning</option>
+                                <option value="afternoon" data-i18n="time.afternoon">Afternoon</option>
+                                <option value="evening" data-i18n="time.evening">Evening</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="priority" class="form-label" data-i18n="activity.priority">Priority</label>
+                            <select class="form-select" id="priority" required>
+                                <option value="would_like" data-i18n="priority.would_like">Would Like</option>
+                                <option value="must_do" data-i18n="priority.must_do">Must Do</option>
+                                <option value="optional" data-i18n="priority.optional">Optional</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="estimatedCost" class="form-label" data-i18n="activity.estimated_cost">Estimated Cost</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="estimatedCost" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="locationName" class="form-label" data-i18n="activity.location_name">Location Name</label>
+                            <input type="text" class="form-control" id="locationName">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="address" class="form-label" data-i18n="activity.address">Address</label>
+                            <input type="text" class="form-control" id="address">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label" data-i18n="activity.notes">Notes</label>
+                        <textarea class="form-control" id="notes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="createActivityBtn">
+                    <i class="bi bi-plus-circle"></i>
+                    <span data-i18n="activity.add_activity">Add Activity</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Edit Modal -->
+<div class="modal fade" id="editActivityModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" data-i18n="activity.edit_activity">Edit Activity</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editActivityForm">
+                    <input type="hidden" id="editActivityId">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="editActivityName" class="form-label" data-i18n="activity.activity_name">Activity Name</label>
+                            <input type="text" class="form-control" id="editActivityName" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="editCategory" class="form-label" data-i18n="activity.category">Category</label>
+                            <select class="form-select" id="editCategory" required>
+                                <option value="">Select category...</option>
+                                <option value="sightseeing" data-i18n="category.sightseeing">Sightseeing</option>
+                                <option value="food" data-i18n="category.food">Food</option>
+                                <option value="shopping" data-i18n="category.shopping">Shopping</option>
+                                <option value="rest" data-i18n="category.rest">Rest</option>
+                                <option value="transportation" data-i18n="category.transportation">Transportation</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label" data-i18n="activity.description">Description</label>
+                        <textarea class="form-control" id="editDescription" rows="2"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editActivityDate" class="form-label" data-i18n="activity.date">Date</label>
+                            <input type="date" class="form-control" id="editActivityDate" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editTimeSlot" class="form-label" data-i18n="activity.time_slot">Time Slot</label>
+                            <select class="form-select" id="editTimeSlot" required>
+                                <option value="">Select time...</option>
+                                <option value="morning" data-i18n="time.morning">Morning</option>
+                                <option value="afternoon" data-i18n="time.afternoon">Afternoon</option>
+                                <option value="evening" data-i18n="time.evening">Evening</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editPriority" class="form-label" data-i18n="activity.priority">Priority</label>
+                            <select class="form-select" id="editPriority" required>
+                                <option value="would_like" data-i18n="priority.would_like">Would Like</option>
+                                <option value="must_do" data-i18n="priority.must_do">Must Do</option>
+                                <option value="optional" data-i18n="priority.optional">Optional</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editEstimatedCost" class="form-label" data-i18n="activity.estimated_cost">Estimated Cost</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="editEstimatedCost" min="0" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editLocationName" class="form-label" data-i18n="activity.location_name">Location Name</label>
+                            <input type="text" class="form-control" id="editLocationName">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editAddress" class="form-label" data-i18n="activity.address">Address</label>
+                            <input type="text" class="form-control" id="editAddress">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editNotes" class="form-label" data-i18n="activity.notes">Notes</label>
+                        <textarea class="form-control" id="editNotes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="common.cancel">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateActivityBtn">
+                    <i class="bi bi-check-circle"></i>
+                    <span data-i18n="common.save">Save</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity Detail Modal -->
+<div class="modal fade activity-detail-modal" id="activityDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title" id="activityDetailTitle">Activity Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="activityDetailBody">
+                <!-- Activity details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Close
+                </button>
+                <div class="ms-auto d-flex gap-2">
+                    <button type="button" class="btn btn-outline-danger" id="deleteActivityFromDetailBtn" style="display: none;">
+                        <i class="bi bi-trash"></i> Delete Activity
+                    </button>
+                    <button type="button" class="btn btn-warm-primary" id="editActivityFromDetailBtn">
+                        <i class="bi bi-pencil"></i> Edit Activity
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Family Member Modal -->
+<div class="modal fade" id="familyMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-plus-fill text-warm-primary me-2"></i>
+                    Add Family Member
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="familyMemberForm">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="memberName" class="form-label">Name *</label>
+                            <input type="text" class="form-control" id="memberName" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="memberAge" class="form-label">Age</label>
+                            <input type="number" class="form-control" id="memberAge" min="0" max="120">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberRole" class="form-label">Role *</label>
+                        <select class="form-select" id="memberRole" required>
+                            <option value="">Select role...</option>
+                            <option value="parent">Parent</option>
+                            <option value="child">Child</option>
+                            <option value="adult">Adult</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberInterests" class="form-label">Interests & Hobbies</label>
+                        <textarea class="form-control" id="memberInterests" rows="2" placeholder="e.g., Photography, Museums, Adventure sports..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberWishlist" class="form-label">Travel Wishes</label>
+                        <textarea class="form-control" id="memberWishlist" rows="3" placeholder="What would this family member love to see or do? (one per line)"></textarea>
+                        <small class="form-text text-muted">Enter each wish on a new line</small>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="memberDietary" class="form-label">Dietary Restrictions</label>
+                            <input type="text" class="form-control" id="memberDietary" placeholder="e.g., Vegetarian, Gluten-free...">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="memberMobility" class="form-label">Mobility Needs</label>
+                            <input type="text" class="form-control" id="memberMobility" placeholder="Any accessibility requirements...">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="memberNotes" class="form-label">Additional Notes</label>
+                        <textarea class="form-control" id="memberNotes" rows="2" placeholder="Any other important information..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-warm-primary" onclick="saveFamilyMember()">
+                    <i class="bi bi-person-check-fill"></i> Add Member
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_styles %}
+<style>
+:root {
+    /* ===== SOPHISTICATED COLOR PALETTE ===== */
+    /* Primary Brand Colors */
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --primary-light: #8b9de8;
+    --primary-dark: #5a67d8;
+    
+    /* Semantic Colors */
+    --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --success-light: #34d399;
+    --success-dark: #047857;
+    
+    --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    --warning-light: #fbbf24;
+    --warning-dark: #b45309;
+    
+    --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    --danger-light: #f87171;
+    --danger-dark: #b91c1c;
+    
+    /* Neutral Grays */
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-300: #cbd5e1;
+    --gray-400: #94a3b8;
+    --gray-500: #64748b;
+    --gray-600: #475569;
+    --gray-700: #334155;
+    --gray-800: #1e293b;
+    --gray-900: #0f172a;
+    
+    /* Time Slot Gradients */
+    --morning-gradient: linear-gradient(135deg, #fef3c7 0%, #fed7aa 50%, #fde68a 100%);
+    --afternoon-gradient: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 50%, #93c5fd 100%);
+    --evening-gradient: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 50%, #a5b4fc 100%);
+    
+    /* Priority Status Colors */
+    --priority-must-do: var(--danger-gradient);
+    --priority-would-like: var(--warning-gradient);
+    --priority-maybe: var(--gray-300);
+    
+    /* Category Colors */
+    --category-food: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --category-sightseeing: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    --category-shopping: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    --category-entertainment: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    --category-transport: var(--gray-400);
+    --category-accommodation: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    
+    /* Surface Colors */
+    --surface-primary: #ffffff;
+    --surface-secondary: var(--gray-50);
+    --surface-tertiary: var(--gray-100);
+    --surface-elevated: #ffffff;
+    
+    /* Text Colors */
+    --text-primary: var(--gray-900);
+    --text-secondary: var(--gray-700);
+    --text-tertiary: var(--gray-500);
+    --text-disabled: var(--gray-400);
+    
+    /* Border Colors */
+    --border-light: var(--gray-200);
+    --border-medium: var(--gray-300);
+    --border-strong: var(--gray-400);
+    
+    /* Shadow System */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Typography Scale */
+    --text-xs: 0.75rem;    /* 12px */
+    --text-sm: 0.875rem;   /* 14px */
+    --text-base: 1rem;     /* 16px */
+    --text-lg: 1.125rem;   /* 18px */
+    --text-xl: 1.25rem;    /* 20px */
+    --text-2xl: 1.5rem;    /* 24px */
+    --text-3xl: 1.875rem;  /* 30px */
+    --text-4xl: 2.25rem;   /* 36px */
+    
+    /* Spacing Scale */
+    --space-1: 0.25rem;    /* 4px */
+    --space-2: 0.5rem;     /* 8px */
+    --space-3: 0.75rem;    /* 12px */
+    --space-4: 1rem;       /* 16px */
+    --space-5: 1.25rem;    /* 20px */
+    --space-6: 1.5rem;     /* 24px */
+    --space-8: 2rem;       /* 32px */
+    --space-10: 2.5rem;    /* 40px */
+    --space-12: 3rem;      /* 48px */
+    --space-16: 4rem;      /* 64px */
+    
+    /* Border Radius Scale */
+    --radius-sm: 0.25rem;  /* 4px */
+    --radius-md: 0.375rem; /* 6px */
+    --radius-lg: 0.5rem;   /* 8px */
+    --radius-xl: 0.75rem;  /* 12px */
+    --radius-2xl: 1rem;    /* 16px */
+    --radius-full: 9999px;
+    
+    /* ===== TYPOGRAPHY SYSTEM ===== */
+    /* Font Families */
+    --font-sans: system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+    
+    /* Font Weights */
+    --font-weight-light: 300;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+    
+    /* Line Heights */
+    --line-height-tight: 1.25;
+    --line-height-snug: 1.375;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.625;
+    --line-height-loose: 2;
+    
+    /* Letter Spacing */
+    --letter-spacing-tighter: -0.05em;
+    --letter-spacing-tight: -0.025em;
+    --letter-spacing-normal: 0em;
+    --letter-spacing-wide: 0.025em;
+    --letter-spacing-wider: 0.05em;
+    --letter-spacing-widest: 0.1em;
+}
+
+/* ===== ENHANCED TYPOGRAPHY & INFORMATION ARCHITECTURE ===== */
+
+/* Base Typography */
+body {
+    font-family: var(--font-sans);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-normal);
+    color: var(--text-primary);
+    font-feature-settings: 'cv03', 'cv04', 'cv11';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Heading Hierarchy */
+h1, .h1 {
+    font-size: var(--text-4xl);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+    color: var(--text-primary);
+    margin-bottom: var(--space-6);
+}
+
+h2, .h2 {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    color: var(--text-primary);
+    margin-bottom: var(--space-5);
+}
+
+h3, .h3 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-snug);
+    color: var(--text-primary);
+    margin-bottom: var(--space-4);
+}
+
+h4, .h4 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-snug);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-3);
+}
+
+h5, .h5 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-normal);
+    color: var(--text-secondary);
+    margin-bottom: var(--space-2);
+}
+
+h6, .h6 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-normal);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide);
+    margin-bottom: var(--space-2);
+}
+
+/* Enhanced Button Typography */
+.btn {
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wide);
+    border-radius: var(--radius-lg);
+    transition: all 0.2s ease;
+}
+
+.btn-lg {
+    font-size: var(--text-lg);
+    padding: var(--space-3) var(--space-6);
+}
+
+.btn-sm {
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-4);
+}
+
+/* Enhanced Time Slot Headers */
+.time-slot-header {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    text-align: center;
+    margin-bottom: var(--space-4);
+    padding: var(--space-3);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+/* Time slot styling with sophisticated gradients */
+.col-md-4:nth-child(1) .drop-zone {
+    background: var(--morning-gradient);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    box-shadow: var(--shadow-sm);
+}
+
+.col-md-4:nth-child(2) .drop-zone {
+    background: var(--afternoon-gradient);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: var(--shadow-sm);
+}
+
+.col-md-4:nth-child(3) .drop-zone {
+    background: var(--evening-gradient);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Activity image styling */
+/* ===== MODERN FLASH CARD DESIGN SYSTEM ===== */
+
+/* Flash Card Base Styles */
+.flash-card {
+    background: var(--surface-elevated);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: grab;
+    overflow: hidden;
+    position: relative;
+}
+
+.flash-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border-medium);
+}
+
+.flash-card:active {
+    cursor: grabbing;
+}
+
+/* Flash Card Images - Perfect 32px for compact design */
+.flash-card-image {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-lg);
+    object-fit: cover;
+    border: 1px solid var(--border-light);
+    flex-shrink: 0;
+}
+
+.flash-card-placeholder {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+    flex-shrink: 0;
+}
+
+/* Flash Card Content Layout */
+.flash-card-content {
+    padding: var(--space-3);
+    display: flex;
+    gap: var(--space-2);
+    align-items: flex-start;
+    min-height: 60px;
+}
+
+.flash-card-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+}
+
+.flash-card-title {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    line-height: var(--line-height-tight);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.flash-card-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.flash-card-badge {
+    background: var(--gray-100);
+    color: var(--gray-600);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-widest);
+}
+
+.flash-card-cost {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--success-dark);
+    font-family: var(--font-mono);
+}
+
+.flash-card-cost.free {
+    color: var(--text-tertiary);
+}
+
+.flash-card-action {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    text-align: center;
+    margin-top: var(--space-1);
+    opacity: 0.8;
+}
+
+/* Legacy compatibility - keeping old classes for planning area */
+.activity-image-container {
+    width: 50px;
+    height: 50px;
+    position: relative;
+}
+
+.activity-thumbnail {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.activity-placeholder {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #e9ecef;
+    font-size: 1.2rem;
+}
+
+
+/* Activity card enhancements */
+.activity-card {
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    position: relative;
+    background: var(--surface-elevated);
+    border-radius: var(--radius-lg);
+}
+
+.activity-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-xl);
+}
+
+.activity-card:hover .activity-thumbnail {
+    transform: scale(1.1);
+    border-color: var(--primary-dark);
+}
+
+/* Category-specific styling */
+.category-sightseeing {
+    border-left: 4px solid var(--primary-dark) !important;
+}
+
+.category-food {
+    border-left: 4px solid var(--success-dark) !important;
+}
+
+.category-shopping {
+    border-left: 4px solid var(--warning-dark) !important;
+}
+
+.category-entertainment {
+    border-left: 4px solid var(--primary-light) !important;
+}
+
+.category-transportation {
+    border-left: 4px solid var(--gray-500) !important;
+}
+
+.category-accommodation {
+    border-left: 4px solid var(--primary-dark) !important;
+}
+
+/* Priority styling */
+.priority-must_do {
+    background: linear-gradient(45deg, rgba(239, 68, 68, 0.08) 0%, var(--surface-elevated) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.priority-would_like {
+    background: linear-gradient(45deg, rgba(251, 146, 60, 0.08) 0%, var(--surface-elevated) 100%);
+    border: 1px solid rgba(251, 146, 60, 0.15);
+}
+
+.priority-maybe {
+    background: linear-gradient(45deg, rgba(156, 163, 175, 0.08) 0%, var(--surface-elevated) 100%);
+    border: 1px solid rgba(156, 163, 175, 0.15);
+}
+
+/* Drag and drop styling */
+.showcase-activity-card {
+    cursor: grab;
+    user-select: none;
+    -webkit-user-drag: element;
+}
+
+.showcase-activity-card:active {
+    cursor: grabbing;
+}
+
+.showcase-activity-card.dragging,
+.activity-card.dragging {
+    opacity: 0.8;
+    transform: scale(0.95) rotate(3deg);
+    cursor: grabbing;
+    z-index: 1000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.drop-zone.drag-over {
+    border: 3px dashed var(--success-dark) !important;
+    background: rgba(16, 185, 129, 0.1) !important;
+    box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.2);
+    transform: scale(1.02);
+}
+
+.drop-zone {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 120px;
+    border: 2px dashed transparent;
+    position: relative;
+    border-radius: var(--radius-lg);
+}
+
+.drop-zone:empty:before {
+    content: "Drop activities here";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    opacity: 0.8;
+}
+
+/* Time slot headers with icons */
+.text-primary {
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Modal enhancements */
+.modal-xl {
+    max-width: 90%;
+}
+
+.modal-content {
+    border: none;
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-xl);
+    background: var(--surface-elevated);
+}
+
+.modal-header {
+    background: var(--primary-gradient);
+    color: white;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+/* Card animations */
+@keyframes cardAppear {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.activity-card {
+    animation: cardAppear 0.3s ease-out;
+}
+
+/* Drag handle styling */
+.drag-handle {
+    cursor: grab !important;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing !important;
+}
+
+/* Prevent text selection during drag */
+.showcase-activity-card * {
+    pointer-events: none;
+}
+
+.showcase-activity-card {
+    pointer-events: auto;
+}
+
+/* Loading animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading-placeholder {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Daily card enhancements */
+.daily-card {
+    border: none;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-2xl);
+    overflow: hidden;
+    background: var(--surface-elevated);
+}
+
+.daily-header {
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    border-bottom: none;
+    padding: var(--space-6);
+}
+
+.day-title {
+    font-weight: var(--font-weight-bold);
+    color: var(--text-primary);
+    font-size: var(--text-2xl);
+    letter-spacing: var(--letter-spacing-tight);
+    line-height: var(--line-height-tight);
+}
+
+.day-progress .progress {
+    border-radius: var(--radius-sm);
+    background-color: rgba(102, 126, 234, 0.15);
+    height: 6px;
+}
+
+.day-icon {
+    width: 50px;
+    height: 50px;
+    background: var(--primary-gradient);
+    border-radius: var(--radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.cost-summary .badge {
+    font-size: var(--text-sm);
+    padding: var(--space-2) var(--space-3);
+    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-lg);
+}
+
+/* Enhanced time slot headers */
+.text-primary {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary) !important;
+    font-size: var(--text-lg);
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+/* ===== DROPDOWN MENU POSITIONING FIX ===== */
+/* Ensure dropdown menus are always visible and not covered */
+.activity-card .dropdown {
+    position: static !important;
+    z-index: 1050;
+}
+
+.activity-card .dropdown-menu {
+    position: fixed !important;
+    z-index: 9999 !important;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    min-width: 150px;
+    padding: var(--space-2) 0;
+    margin: 0;
+    background: var(--surface-elevated);
+    /* Force dropdown to stay above all other content */
+    will-change: transform;
+    /* Enable proper positioning */
+    transform: none !important;
+    inset: auto !important;
+}
+
+.activity-card .dropdown-menu .dropdown-item {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    line-height: 1.2;
+    color: var(--text-secondary);
+}
+
+.activity-card .dropdown-menu .dropdown-item:hover {
+    background-color: var(--gray-50);
+    color: var(--text-primary);
+}
+
+.activity-card .dropdown-menu .dropdown-item.text-danger:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger-dark);
+}
+
+.activity-card .dropdown-menu .dropdown-item i {
+    width: 16px;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+/* Ensure all containers allow overflow for dropdowns */
+.drop-zone,
+.card-body,
+.col-md-4,
+.daily-card,
+.daily-card .card-body,
+.row {
+    overflow: visible !important;
+}
+
+/* Fix z-index stacking context */
+.daily-card {
+    z-index: auto;
+}
+
+.activity-card {
+    position: relative;
+    z-index: 1;
+}
+
+.activity-card:hover {
+    z-index: 1000;
+}
+
+.activity-card .dropdown.show {
+    z-index: 9998 !important;
+}
+
+/* Force Bootstrap dropdown positioning */
+.activity-card .dropdown-menu.show {
+    position: fixed !important;
+    z-index: 9999 !important;
+    transform: none !important;
+}
+
+/* Style the dropdown toggle button */
+.activity-card .btn-outline-secondary {
+    border: 1px solid var(--border-light);
+    color: var(--text-tertiary);
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(4px);
+    border-radius: var(--radius-md);
+}
+
+.activity-card .btn-outline-secondary:hover {
+    background-color: var(--gray-50);
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+/* ===== DRAG-TO-DELETE ZONE STYLING ===== */
+#deleteZone {
+    backdrop-filter: blur(8px);
+    border: 3px dashed var(--danger-dark);
+    border-radius: var(--radius-2xl);
+    background: rgba(239, 68, 68, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: deleteZonePulse 2s ease-in-out infinite;
+}
+
+#deleteZone.drag-over {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--danger-dark);
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 12px 48px rgba(239, 68, 68, 0.5);
+}
+
+#deleteZone .delete-zone-content {
+    pointer-events: none;
+    user-select: none;
+}
+
+@keyframes deleteZonePulse {
+    0%, 100% {
+        border-color: var(--danger-dark);
+        box-shadow: var(--shadow-lg);
+    }
+    50% {
+        border-color: var(--danger-dark);
+        box-shadow: var(--shadow-xl);
+    }
+}
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    color: var(--text-primary) !important;
+}
+
+/* Trip info bar enhancement */
+#tripInfoBar .alert {
+    background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-dark) 100%);
+    border: none;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    color: white;
+}
+
+/* ===== ENHANCED SIDEBAR DESIGN ===== */
+
+/* Sidebar Container */
+.sidebar-container {
+    background: var(--surface-elevated);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Search Section */
+.sidebar-search-section {
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+}
+
+.search-input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: var(--space-3);
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.search-input {
+    padding-left: calc(var(--space-8) + var(--space-2));
+    padding-right: var(--space-10);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+    background: var(--surface-elevated);
+    font-size: var(--text-sm);
+    transition: all 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    outline: none;
+}
+
+.search-clear {
+    position: absolute;
+    right: var(--space-2);
+    border: none;
+    background: none;
+    color: var(--text-tertiary);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.search-clear:hover {
+    background: var(--gray-100);
+    color: var(--text-secondary);
+}
+
+/* Categories Section */
+.sidebar-categories {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-2);
+}
+
+.category-section {
+    margin-bottom: var(--space-2);
+    border-radius: var(--radius-lg);
+    background: var(--surface-primary);
+    border: 1px solid var(--border-light);
+    transition: all 0.2s ease;
+}
+
+.category-section:hover {
+    box-shadow: var(--shadow-sm);
+}
+
+.category-header {
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    border-radius: var(--radius-lg);
+}
+
+.category-header:hover {
+    background: var(--gray-50);
+}
+
+.category-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: 1;
+}
+
+.category-icon {
+    font-size: var(--text-lg);
+    color: var(--primary-dark);
+    width: 20px;
+    text-align: center;
+}
+
+.category-name {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+.category-count {
+    background: var(--primary-gradient);
+    color: white;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    min-width: 20px;
+    text-align: center;
+    margin-left: var(--space-2);
+}
+
+.category-toggle {
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+    transition: transform 0.2s ease;
+}
+
+.category-section.collapsed .category-toggle {
+    transform: rotate(-90deg);
+}
+
+.category-content {
+    max-height: 300px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.category-section.collapsed .category-content {
+    max-height: 0;
+}
+
+.category-activities {
+    padding: 0 var(--space-2) var(--space-3) var(--space-2);
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* Enhanced Activity Cards in Sidebar */
+.category-activities .flash-card {
+    margin-bottom: var(--space-2);
+    transform: scale(0.98);
+    transition: all 0.2s ease;
+}
+
+.category-activities .flash-card:hover {
+    transform: scale(1);
+}
+
+.category-activities .flash-card:last-child {
+    margin-bottom: 0;
+}
+
+/* Action Buttons */
+.sidebar-actions {
+    padding: var(--space-4);
+    border-top: 1px solid var(--border-light);
+    background: var(--gray-50);
+}
+
+.sidebar-actions .btn {
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wide);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+}
+
+/* Empty State */
+.category-activities:empty:before {
+    content: "No activities found";
+    display: block;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: var(--text-sm);
+    padding: var(--space-4);
+    font-style: italic;
+}
+
+/* Scrollbar Styling */
+.sidebar-categories::-webkit-scrollbar,
+.category-activities::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-categories::-webkit-scrollbar-track,
+.category-activities::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: var(--radius-sm);
+}
+
+.sidebar-categories::-webkit-scrollbar-thumb,
+.category-activities::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: var(--radius-sm);
+}
+
+.sidebar-categories::-webkit-scrollbar-thumb:hover,
+.category-activities::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-400);
+}
+
+/* ===== ENHANCED MAIN CALENDAR VIEW ===== */
+
+/* Enhanced Time Slot Headers */
+.time-slot-header {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+    margin-bottom: var(--space-4);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.time-slot-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.time-slot-icon {
+    font-size: var(--text-xl);
+    color: var(--primary-dark);
+}
+
+.time-slot-name {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+.activity-counter {
+    background: var(--primary-gradient);
+    color: white;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    min-width: 20px;
+    text-align: center;
+}
+
+.time-slot-actions {
+    display: flex;
+    gap: var(--space-1);
+}
+
+.time-slot-btn {
+    border-radius: var(--radius-md);
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--text-sm);
+    border: 1px solid var(--border-medium);
+    background: rgba(255, 255, 255, 0.8);
+    transition: all 0.2s ease;
+}
+
+.time-slot-btn:hover:not(:disabled) {
+    background: var(--primary-light);
+    border-color: var(--primary-dark);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.time-slot-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Enhanced Drop Zone */
+.enhanced-drop-zone {
+    min-height: 120px;
+    border: 2px dashed transparent;
+    border-radius: var(--radius-xl);
+    padding: var(--space-3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.enhanced-drop-zone.drag-over {
+    border-color: var(--success-dark);
+    background: rgba(16, 185, 129, 0.08);
+    box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.15);
+    transform: scale(1.02);
+}
+
+/* Empty Time Slot State */
+.empty-time-slot {
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-6);
+}
+
+.empty-state-content {
+    text-align: center;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.empty-time-slot:hover .empty-state-content {
+    opacity: 1;
+}
+
+.empty-state-icon {
+    font-size: var(--text-4xl);
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-3);
+}
+
+.empty-state-text {
+    font-size: var(--text-sm);
+    color: var(--text-tertiary);
+    margin-bottom: var(--space-3);
+    font-style: italic;
+}
+
+.empty-state-btn {
+    font-size: var(--text-xs);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-lg);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: var(--letter-spacing-wide);
+}
+
+/* Enhanced Activity Cards in Calendar */
+.enhanced-activity-card {
+    background: var(--surface-elevated);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    cursor: grab;
+    overflow: hidden;
+    position: relative;
+}
+
+.enhanced-activity-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-medium);
+}
+
+.enhanced-activity-card:active {
+    cursor: grabbing;
+    transform: translateY(0);
+}
+
+.enhanced-activity-card.dragging {
+    opacity: 0.8;
+    transform: scale(0.95) rotate(2deg);
+    z-index: 1000;
+    box-shadow: var(--shadow-xl);
+}
+
+.enhanced-activity-body {
+    padding: var(--space-3);
+}
+
+.activity-main-content {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+}
+
+.activity-visual-section {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.activity-image-container {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: relative;
+}
+
+.activity-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 1px solid var(--border-light);
+    transition: transform 0.2s ease;
+}
+
+.enhanced-activity-card:hover .activity-thumbnail {
+    transform: scale(1.05);
+}
+
+.activity-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+    color: var(--text-tertiary);
+    font-size: var(--text-lg);
+    border: 1px solid var(--border-light);
+}
+
+.activity-priority-indicator {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    border: 2px solid white;
+}
+
+.activity-priority-indicator.priority-must_do {
+    background: var(--danger-dark);
+}
+
+.activity-priority-indicator.priority-would_like {
+    background: var(--warning-dark);
+}
+
+.activity-priority-indicator.priority-maybe {
+    background: var(--gray-400);
+}
+
+.activity-details-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.activity-order-number {
+    width: 20px;
+    height: 20px;
+    border-radius: var(--radius-full);
+    background: var(--primary-gradient);
+    color: white;
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-bold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.activity-title {
+    flex: 1;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-primary);
+    margin: 0;
+    line-height: var(--line-height-tight);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.activity-drag-handle {
+    color: var(--text-tertiary);
+    cursor: grab;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+}
+
+.enhanced-activity-card:hover .activity-drag-handle {
+    opacity: 1;
+}
+
+.activity-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
+}
+
+.activity-badges {
+    display: flex;
+    gap: var(--space-1);
+    flex-wrap: wrap;
+}
+
+.activity-category-badge,
+.activity-priority-badge {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+}
+
+.activity-category-badge {
+    background: var(--gray-100);
+    color: var(--gray-700);
+}
+
+.activity-priority-badge {
+    background: var(--gray-50);
+    color: var(--gray-600);
+}
+
+.activity-actions {
+    flex-shrink: 0;
+}
+
+.activity-menu-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: var(--radius-md);
+    padding: var(--space-1);
+    color: var(--text-tertiary);
+    transition: all 0.2s ease;
+}
+
+.activity-menu-btn:hover {
+    background: var(--gray-100);
+    color: var(--text-primary);
+}
+
+.activity-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-light);
+}
+
+.activity-location {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex: 1;
+    min-width: 0;
+}
+
+.location-icon {
+    color: var(--text-tertiary);
+    font-size: var(--text-xs);
+    flex-shrink: 0;
+}
+
+.location-text {
+    font-size: var(--text-xs);
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.activity-cost {
+    flex-shrink: 0;
+}
+
+.cost-amount {
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--success-dark);
+    font-family: var(--font-mono);
+}
+
+/* Time Slot Specific Styling */
+.time-slot-morning .enhanced-drop-zone {
+    background: var(--morning-gradient);
+}
+
+.time-slot-afternoon .enhanced-drop-zone {
+    background: var(--afternoon-gradient);
+}
+
+.time-slot-evening .enhanced-drop-zone {
+    background: var(--evening-gradient);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .activity-image-container,
+    .activity-thumbnail,
+    .activity-placeholder {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .drop-zone {
+        min-height: 80px;
+    }
+    
+    .daily-header {
+        padding: var(--space-4);
+    }
+    
+    .flash-card-content {
+        padding: var(--space-2);
+    }
+    
+    .flash-card-title {
+        font-size: var(--text-xs);
+    }
+}
+    
+    .day-icon {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* Flash Card Drag & Drop Animations */
+.flash-card.dragging {
+    transform: rotate(5deg) scale(0.95);
+    opacity: 0.8;
+    z-index: 1000;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+}
+
+.flash-card-source-favorite {
+    border-left: 3px solid #e53e3e;
+}
+
+.flash-card-source-voted {
+    border-left: 3px solid #38a169;
+}
+
+/* Beautiful Sidebar Styling */
+#showcaseSidebar {
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid #e3e8ef;
+}
+
+#showcaseSidebar .card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+#showcaseSidebar .card-header {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e3e8ef;
+    margin-bottom: 16px;
+    padding: 16px;
+}
+
+#showcaseSidebar .card-body {
+    background: transparent;
+    padding: 0;
+}
+
+/* Drop Zone Enhancements */
+.drop-zone.drag-over {
+    background: linear-gradient(135deg, #e6fffa 0%, #b2f5ea 100%);
+    border: 2px dashed #38a169 !important;
+    border-radius: 12px;
+    box-shadow: inset 0 0 20px rgba(56, 161, 105, 0.1);
+    transform: scale(1.02);
+}
+
+.drop-zone {
+    border-radius: 8px;
+    border: 2px dashed transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.drop-zone:empty:before {
+    content: "📋 Drop activities here";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #718096;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0.7;
+}
+</style>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentTripId = null;
+let currentTrip = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize page
+    loadTrips();
+    setupEventHandlers();
+    
+    // Check URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get('trip_id');
+    if (tripId) {
+        setTimeout(() => {
+            document.getElementById('tripSelect').value = tripId;
+            loadTripData(tripId);
+        }, 500);
+    }
+    
+    // Add debug function to window for testing
+    window.testDragDrop = function() {
+        console.log('Testing drag and drop setup...');
+        const cards = document.querySelectorAll('.showcase-activity-card');
+        const dropZones = document.querySelectorAll('.drop-zone');
+        console.log('Found cards:', cards.length);
+        console.log('Found drop zones:', dropZones.length);
+        
+        if (cards.length > 0) {
+            const firstCard = cards[0];
+            console.log('First card draggable:', firstCard.draggable);
+            console.log('First card attributes:', firstCard.attributes);
+        }
+    };
+});
+
+async function loadTrips() {
+    try {
+        const trips = await apiRequest('/api/trips/');
+        const select = document.getElementById('tripSelect');
+        
+        select.innerHTML = '<option value="">Select a trip...</option>';
+        
+        let osakaTrip = null;
+        trips.forEach(trip => {
+            const option = document.createElement('option');
+            option.value = trip.id;
+            option.textContent = `${trip.name} (${formatDate(trip.start_date)} - ${formatDate(trip.end_date)})`;
+            select.appendChild(option);
+            
+            // Find Osaka Family Trip for default selection
+            if (trip.name.toLowerCase().includes('osaka')) {
+                osakaTrip = trip;
+            }
+        });
+        
+        // Auto-select Osaka Family Trip if found and no URL parameter specified
+        const urlParams = new URLSearchParams(window.location.search);
+        const tripId = urlParams.get('trip_id');
+        if (!tripId && osakaTrip) {
+            select.value = osakaTrip.id;
+            setTimeout(() => {
+                loadTripData(osakaTrip.id);
+            }, 100);
+        }
+        
+    } catch (error) {
+        console.error('Error loading trips:', error);
+        showAlert('Error loading trips', 'danger');
+    }
+}
+
+function setupEventHandlers() {
+    // Trip selection
+    document.getElementById('tripSelect').addEventListener('change', function() {
+        const tripId = this.value;
+        if (tripId) {
+            loadTripData(tripId);
+        } else {
+            showEmptyState();
+        }
+    });
+    
+    // Activity forms
+    document.getElementById('createActivityBtn').addEventListener('click', createActivity);
+    document.getElementById('updateActivityBtn').addEventListener('click', updateActivity);
+}
+
+async function loadTripData(tripId) {
+    try {
+        showLoading(true);
+        currentTripId = tripId;
+        
+        // Load trip details
+        const trip = await apiRequest(`/api/trips/${tripId}`);
+        currentTrip = trip;
+        updateTripInfo(trip);
+        
+        // Load daily activities
+        const dailyActivities = await apiRequest(`/api/trips/${tripId}/daily-activities`);
+        renderDailyActivities(dailyActivities);
+        
+        // Load activity showcase
+        loadActivityShowcase(tripId);
+        
+        // Load family members (from main.js)
+        if (typeof loadFamilyMembers === 'function') {
+            loadFamilyMembers(tripId);
+        }
+        
+        // Check for pending activity from discovery hub
+        checkPendingActivity();
+        
+    } catch (error) {
+        console.error('Error loading trip data:', error);
+        showAlert('Error loading trip data', 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function updateTripInfo(trip) {
+    document.getElementById('tripTitle').textContent = trip.name;
+    document.getElementById('tripDestination').textContent = trip.destination;
+    document.getElementById('tripDates').textContent = 
+        `${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}`;
+    document.getElementById('tripBudget').textContent = trip.total_budget.toLocaleString();
+    
+    document.getElementById('tripInfoBar').classList.remove('d-none');
+}
+
+function renderDailyActivities(dailyActivities) {
+    const container = document.getElementById('dailyActivitiesContainer');
+    
+    if (!dailyActivities || dailyActivities.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted mt-5">
+                <i class="bi bi-calendar-plus" style="font-size: 4rem;"></i>
+                <h4>No activities planned yet</h4>
+                <p>Start planning your trip by adding some activities!</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#activityModal">
+                    <i class="bi bi-plus-circle"></i>
+                    Add First Activity
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = dailyActivities.map(day => {
+        const totalActivities = day.morning.length + day.afternoon.length + day.evening.length;
+        const totalCost = day.total_estimated_cost;
+        const progressPercentage = Math.min((totalActivities / 6) * 100, 100); // Assuming 6 activities is "full day"
+        
+        return `
+        <div class="card mb-4 daily-card">
+            <div class="card-header daily-header">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center">
+                            <div class="day-icon me-3">
+                                <i class="bi bi-calendar-day text-primary fs-4"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 day-title">
+                                    ${formatDate(day.date)} - ${getDayName(day.date)}
+                                </h5>
+                                <div class="day-progress">
+                                    <div class="progress" style="height: 4px;">
+                                        <div class="progress-bar bg-primary" style="width: ${progressPercentage}%"></div>
+                                    </div>
+                                    <small class="text-muted mt-1">
+                                        ${totalActivities} activities planned
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="day-summary">
+                            <div class="cost-summary">
+                                <span class="badge bg-${totalCost > 100 ? 'warning' : totalCost > 50 ? 'info' : 'success'} fs-6">
+                                    <i class="bi bi-currency-dollar"></i> $${totalCost.toFixed(2)}
+                                </span>
+                            </div>
+                            <small class="text-muted d-block mt-1">Daily budget</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    ${renderTimeSlot('Morning', day.morning, day.date)}
+                    ${renderTimeSlot('Afternoon', day.afternoon, day.date)}
+                    ${renderTimeSlot('Evening', day.evening, day.date)}
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+    
+    // Set up drag events for planning area activities after rendering
+    setTimeout(() => {
+        setupPlanningAreaDragEvents();
+    }, 100);
+}
+
+function renderTimeSlot(title, activities, date) {
+    const timeSlotKey = title.toLowerCase();
+    return `
+        <div class="col-md-4">
+            <h6 class="text-primary mb-3">
+                <i class="bi bi-${getTimeIcon(title)}"></i>
+                ${title}
+            </h6>
+            <div class="drop-zone" 
+                 data-date="${date}" 
+                 data-timeslot="${timeSlotKey}"
+                 ondragover="handleDragOver(event)"
+                 ondrop="handleDrop(event)"
+                 ondragenter="handleDragEnter(event)"
+                 ondragleave="handleDragLeave(event)"
+                 style="min-height: 100px; border: 2px dashed transparent; border-radius: 8px; padding: 10px;">
+                ${activities.length === 0 ? 
+                    `<p class="text-muted">No activities planned</p>` :
+                activities.map(activity => `
+                    <div class="card mb-2 activity-card priority-${activity.priority} category-${activity.category}" 
+                         draggable="true" 
+                         data-activity-id="${activity.id}"
+                         data-activity-date="${activity.activity_date}"
+                         data-activity-timeslot="${activity.time_slot}"
+                         data-activity-name="${activity.name}"
+                         data-activity-description="${activity.description || ''}"
+                         data-activity-category="${activity.category}"
+                         data-activity-location="${activity.location_name || ''}"
+                         data-activity-address="${activity.address || ''}"
+                         data-activity-cost="${activity.estimated_cost || 0}"
+                         ondblclick="showActivityDetailModal(${activity.id})"
+                         style="cursor: grab;">
+                        <div class="card-body p-2">
+                            <div class="d-flex align-items-start">
+                                <div class="activity-image-container me-2">
+                                    ${activity.primary_image_url ? 
+                                        `<img src="${activity.primary_image_url}" 
+                                             class="activity-thumbnail rounded" 
+                                             alt="${activity.name}"
+                                             onerror="this.onerror=null; this.src=''; this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                         <div class="activity-placeholder rounded" style="display: none;">
+                                             <i class="bi bi-${getCategoryIcon(activity.category)} text-${getCategoryColor(activity.category)}"></i>
+                                         </div>` :
+                                        `<div class="activity-placeholder rounded">
+                                             <i class="bi bi-${getCategoryIcon(activity.category)} text-${getCategoryColor(activity.category)}"></i>
+                                         </div>`
+                                    }
+                                </div>
+                                <div class="flex-grow-1" style="min-width: 0;">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="bi bi-grip-vertical text-muted me-2 drag-handle" style="cursor: grab; font-size: 0.8rem;"></i>
+                                        <h6 class="card-title mb-0 text-truncate" style="font-size: 0.85rem;">${activity.name}</h6>
+                                    </div>
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <div>
+                                            <span class="badge bg-${getCategoryColor(activity.category)} me-1" style="font-size: 0.7rem;">
+                                                ${activity.category}
+                                            </span>
+                                            <span class="badge bg-${getPriorityColor(activity.priority)}" style="font-size: 0.7rem;">
+                                                ${getPriorityIcon(activity.priority)} ${activity.priority.replace('_', ' ')}
+                                            </span>
+                                        </div>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary border-0" data-bs-toggle="dropdown" style="padding: 0.2rem 0.4rem;">
+                                                <i class="bi bi-three-dots" style="font-size: 0.8rem;"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><a class="dropdown-item" href="#" onclick="showActivityDetailModal(${activity.id})">
+                                                    <i class="bi bi-eye"></i> View Details
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="#" onclick="editActivity(${activity.id})">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteActivity(${activity.id})">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    ${activity.estimated_cost > 0 ? 
+                                        `<div class="small text-success fw-bold">$${activity.estimated_cost}</div>` : 
+                                        `<div class="small text-muted">Free</div>`
+                                    }
+                                    ${activity.location_name ? 
+                                        `<div class="small text-muted text-truncate mt-1">
+                                            <i class="bi bi-geo-alt" style="font-size: 0.7rem;"></i> ${activity.location_name}
+                                         </div>` : 
+                                        ''
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')
+                }
+            </div>
+        </div>
+    `;
+}
+
+async function createActivity() {
+    const form = document.getElementById('activityForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    if (!currentTripId) {
+        showAlert('Please select a trip first', 'warning');
+        return;
+    }
+    
+    const activityData = {
+        trip_id: currentTripId,
+        name: document.getElementById('activityName').value,
+        description: document.getElementById('description').value,
+        activity_date: document.getElementById('activityDate').value,
+        time_slot: document.getElementById('timeSlot').value,
+        category: document.getElementById('category').value,
+        priority: document.getElementById('priority').value,
+        location_name: document.getElementById('locationName').value,
+        address: document.getElementById('address').value,
+        estimated_cost: parseFloat(document.getElementById('estimatedCost').value) || 0,
+        notes: document.getElementById('notes').value
+    };
+    
+    try {
+        showLoading(true);
+        
+        await apiRequest('/api/activities/', {
+            method: 'POST',
+            body: JSON.stringify(activityData)
+        });
+        
+        showAlert('Activity created successfully!', 'success');
+        
+        // Close modal and reset form
+        const modal = bootstrap.Modal.getInstance(document.getElementById('activityModal'));
+        modal.hide();
+        form.reset();
+        
+        // Reload activities
+        loadTripData(currentTripId);
+        
+    } catch (error) {
+        console.error('Error creating activity:', error);
+        showAlert('Error creating activity. Please try again.', 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function deleteActivity(activityId) {
+    if (!confirm('Are you sure you want to delete this activity?')) {
+        return;
+    }
+    
+    try {
+        await apiRequest(`/api/activities/${activityId}`, {
+            method: 'DELETE'
+        });
+        
+        showAlert('Activity deleted successfully', 'success');
+        loadTripData(currentTripId);
+        
+    } catch (error) {
+        console.error('Error deleting activity:', error);
+        showAlert('Error deleting activity', 'danger');
+    }
+}
+
+async function editActivity(activityId) {
+    try {
+        // Load activity data
+        const activity = await apiRequest(`/api/activities/${activityId}`);
+        
+        // Populate edit form
+        document.getElementById('editActivityId').value = activity.id;
+        document.getElementById('editActivityName').value = activity.name;
+        document.getElementById('editDescription').value = activity.description || '';
+        document.getElementById('editActivityDate').value = activity.activity_date;
+        document.getElementById('editTimeSlot').value = activity.time_slot;
+        document.getElementById('editCategory').value = activity.category;
+        document.getElementById('editPriority').value = activity.priority;
+        document.getElementById('editLocationName').value = activity.location_name || '';
+        document.getElementById('editAddress').value = activity.address || '';
+        document.getElementById('editEstimatedCost').value = activity.estimated_cost || '';
+        document.getElementById('editNotes').value = activity.notes || '';
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('editActivityModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error loading activity for edit:', error);
+        showAlert('Error loading activity data', 'danger');
+    }
+}
+
+async function updateActivity() {
+    const form = document.getElementById('editActivityForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const activityId = document.getElementById('editActivityId').value;
+    const activityData = {
+        name: document.getElementById('editActivityName').value,
+        description: document.getElementById('editDescription').value,
+        activity_date: document.getElementById('editActivityDate').value,
+        time_slot: document.getElementById('editTimeSlot').value,
+        category: document.getElementById('editCategory').value,
+        priority: document.getElementById('editPriority').value,
+        location_name: document.getElementById('editLocationName').value,
+        address: document.getElementById('editAddress').value,
+        estimated_cost: parseFloat(document.getElementById('editEstimatedCost').value) || 0,
+        notes: document.getElementById('editNotes').value
+    };
+    
+    try {
+        showLoading(true);
+        
+        await apiRequest(`/api/activities/${activityId}`, {
+            method: 'PUT',
+            body: JSON.stringify(activityData)
+        });
+        
+        showAlert('Activity updated successfully!', 'success');
+        
+        // Close modal and reset form
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editActivityModal'));
+        modal.hide();
+        form.reset();
+        
+        // Reload activities
+        loadTripData(currentTripId);
+        
+    } catch (error) {
+        console.error('Error updating activity:', error);
+        showAlert('Error updating activity. Please try again.', 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+function showEmptyState() {
+    document.getElementById('tripInfoBar').classList.add('d-none');
+    document.getElementById('dailyActivitiesContainer').innerHTML = `
+        <div class="text-center text-muted mt-5">
+            <i class="bi bi-calendar-x" style="font-size: 4rem;"></i>
+            <h4>Select a trip to view daily activities</h4>
+            <p>Choose a trip from the dropdown above to start planning your daily activities.</p>
+        </div>
+    `;
+}
+
+function getTimeIcon(timeSlot) {
+    const icons = {
+        'Morning': 'sunrise',
+        'Afternoon': 'sun',
+        'Evening': 'sunset'
+    };
+    return icons[timeSlot] || 'clock';
+}
+
+function getCategoryColor(category) {
+    const colors = {
+        'sightseeing': 'primary',
+        'food': 'success',
+        'shopping': 'warning',
+        'rest': 'info',
+        'transportation': 'secondary'
+    };
+    return colors[category] || 'secondary';
+}
+
+function getPriorityColor(priority) {
+    const colors = {
+        'must_do': 'danger',
+        'would_like': 'primary',
+        'optional': 'secondary'
+    };
+    return colors[priority] || 'secondary';
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'sightseeing': 'camera',
+        'food': 'cup-hot',
+        'shopping': 'bag',
+        'rest': 'house',
+        'transportation': 'bus-front'
+    };
+    return icons[category] || 'circle';
+}
+
+function getPriorityIcon(priority) {
+    const icons = {
+        'must_do': '🔥',
+        'would_like': '⭐',
+        'optional': '💡'
+    };
+    return icons[priority] || '';
+}
+
+function getCategoryIcon(category) {
+    const icons = {
+        'sightseeing': 'eye',
+        'food': 'cup-hot',
+        'shopping': 'bag',
+        'rest': 'moon',
+        'entertainment': 'controller',
+        'transport': 'car-front',
+        'accommodation': 'house',
+        'museum': 'building',
+        'park': 'tree',
+        'tourist_attraction': 'camera'
+    };
+    return icons[category] || 'geo-alt';
+}
+
+function getCategoryColor(category) {
+    const colors = {
+        'sightseeing': 'primary',
+        'food': 'success',
+        'shopping': 'warning',
+        'rest': 'info',
+        'entertainment': 'purple',
+        'transport': 'secondary',
+        'accommodation': 'dark',
+        'museum': 'primary',
+        'park': 'success',
+        'tourist_attraction': 'info'
+    };
+    return colors[category] || 'secondary';
+}
+
+function getDayName(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+function viewMap() {
+    window.location.href = `/map?trip_id=${currentTripId}`;
+}
+
+// Drag and Drop functionality
+let draggedActivity = null;
+
+function handleDragStart(event) {
+    console.log('Planning area drag start:', event.target);
+    
+    // Store existing activity data for drag operation
+    draggedActivity = {
+        type: 'existing',
+        id: event.target.getAttribute('data-activity-id'),
+        name: event.target.getAttribute('data-activity-name'),
+        originalDate: event.target.getAttribute('data-activity-date'),
+        originalTimeSlot: event.target.getAttribute('data-activity-timeslot')
+    };
+    
+    console.log('Stored planning area draggedActivity:', draggedActivity);
+    
+    event.target.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/html', event.target.outerHTML);
+    
+    // Add visual feedback to all drop zones with beautiful styling
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.style.border = '2px dashed #38a169';
+        zone.style.backgroundColor = '#f0fff4';
+        zone.style.borderRadius = '8px';
+    });
+    
+    // Show delete zone for existing activities only
+    if (draggedActivity.type === 'existing') {
+        const deleteZone = document.getElementById('deleteZone');
+        deleteZone.classList.remove('d-none');
+        setupDeleteZoneEvents();
+    }
+}
+
+function handleDragEnd(event) {
+    event.target.classList.remove('dragging');
+    
+    // Remove drag over effects from all drop zones
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.classList.remove('drag-over');
+        zone.style.border = '2px dashed transparent';
+        zone.style.backgroundColor = '';
+        zone.style.borderRadius = '';
+    });
+    
+    // Hide delete zone
+    const deleteZone = document.getElementById('deleteZone');
+    deleteZone.classList.add('d-none');
+    deleteZone.classList.remove('drag-over');
+    
+    console.log('Planning area drag end completed');
+}
+
+function handleDragOver(event) {
+    console.log('handleDragOver called');
+    event.preventDefault();
+    
+    // Set appropriate drop effect based on drag type
+    if (draggedActivity && draggedActivity.type === 'existing') {
+        event.dataTransfer.dropEffect = 'move';
+    } else {
+        event.dataTransfer.dropEffect = 'copy';
+    }
+}
+
+function handleDragEnter(event) {
+    console.log('handleDragEnter called on:', event.target);
+    event.preventDefault();
+    const dropZone = event.target.closest('.drop-zone');
+    if (dropZone) {
+        dropZone.classList.add('drag-over');
+        console.log('Added drag-over class to:', dropZone);
+    }
+}
+
+function handleDragLeave(event) {
+    console.log('handleDragLeave called');
+    const dropZone = event.target.closest('.drop-zone');
+    if (dropZone && !dropZone.contains(event.relatedTarget)) {
+        dropZone.classList.remove('drag-over');
+        console.log('Removed drag-over class from:', dropZone);
+    }
+}
+
+async function handleDrop(event) {
+    event.preventDefault();
+    
+    if (!draggedActivity) {
+        console.log('No dragged activity found');
+        return;
+    }
+    
+    // Check if dropped on delete zone
+    const deleteZone = event.target.closest('#deleteZone');
+    if (deleteZone) {
+        await handleDeleteZoneDrop();
+        return;
+    }
+    
+    const dropZone = event.target.closest('.drop-zone');
+    if (!dropZone) {
+        console.log('No drop zone found');
+        return;
+    }
+    
+    const newDate = dropZone.getAttribute('data-date');
+    const newTimeSlot = dropZone.getAttribute('data-timeslot');
+    
+    console.log('Dropping activity:', draggedActivity, 'to date:', newDate, 'timeslot:', newTimeSlot);
+    
+    try {
+        showLoading(true);
+        
+        if (draggedActivity.type === 'recommendation') {
+            // Creating new activity from recommendation
+            const validCategory = mapCategoryToValidEnum(draggedActivity.category);
+            console.log(`Mapping category "${draggedActivity.category}" to "${validCategory}"`);
+            
+            const activityData = {
+                trip_id: currentTripId,
+                name: draggedActivity.name,
+                description: draggedActivity.description || '',
+                category: validCategory,
+                location_name: draggedActivity.location_name || '',
+                address: draggedActivity.address || '',
+                estimated_cost: parseFloat(draggedActivity.estimated_cost) || 0,
+                primary_image_url: draggedActivity.primary_image_url || '',
+                activity_date: newDate,
+                time_slot: newTimeSlot,
+                priority: 'would_like',
+                notes: `Added from recommendations (ID: ${draggedActivity.recommendationId})`
+            };
+            
+            console.log('Creating activity with data:', activityData);
+            
+            const response = await apiRequest('/api/activities/', {
+                method: 'POST',
+                body: JSON.stringify(activityData)
+            });
+            
+            console.log('Activity created successfully:', response);
+            showAlert('Activity added to schedule successfully!', 'success', 2000);
+            
+        } else if (draggedActivity.type === 'existing') {
+            // Moving existing activity between time slots
+            // Check if the activity is being moved to a different location
+            if (newDate === draggedActivity.originalDate && newTimeSlot === draggedActivity.originalTimeSlot) {
+                console.log('No change needed - same location');
+                return; // No change needed
+            }
+            
+            console.log('Moving existing activity:', draggedActivity.id, 'from', draggedActivity.originalDate, draggedActivity.originalTimeSlot, 'to', newDate, newTimeSlot);
+            
+            // Update activity with new date and time slot
+            const response = await apiRequest(`/api/activities/${draggedActivity.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    activity_date: newDate,
+                    time_slot: newTimeSlot
+                })
+            });
+            
+            console.log('Activity moved successfully:', response);
+            showAlert('📅 Activity moved successfully!', 'success', 2000);
+        } else {
+            console.error('Unknown drag type:', draggedActivity.type);
+            showAlert('Error: Unknown drag operation type', 'danger');
+            return;
+        }
+        
+        // Reload the trip data to refresh the display
+        await loadTripData(currentTripId);
+        
+    } catch (error) {
+        console.error('Error handling drop:', error);
+        showAlert(`Error updating activity: ${error.message || error}`, 'danger');
+    } finally {
+        showLoading(false);
+        draggedActivity = null;
+        
+        // Reset drop zone styling
+        dropZone.classList.remove('drag-over');
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.classList.remove('drag-over');
+            zone.style.border = '2px dashed transparent';
+            zone.style.backgroundColor = '';
+        });
+    }
+}
+
+async function loadActivityShowcase(tripId) {
+    try {
+        // Get family members to load favorites
+        const familyMembers = await apiRequest(`/api/family-members/?trip_id=${tripId}`);
+        let allActivities = [];
+        
+        // Get recommendations for this trip sorted by vote score
+        const recommendations = await apiRequest(`/api/search/recommendations?trip_id=${tripId}&sort_by=vote_score&sort_order=desc&page_size=50`);
+        
+        // Filter to show only positively voted activities (score > 0)
+        const topRecommendations = recommendations.recommendations.filter(rec => rec.vote_summary.score > 0);
+        
+        // Add type indicator for voted activities
+        topRecommendations.forEach(rec => {
+            rec.sourceType = 'voted';
+            rec.sourceLabel = `+${rec.vote_summary.score} votes`;
+        });
+        
+        allActivities.push(...topRecommendations);
+        
+        // Get favorites if family members exist
+        if (familyMembers.length > 0) {
+            const familyMemberId = familyMembers[0].id; // Use first family member for demo
+            const favorites = await apiRequest(`/api/favorites/list/${familyMemberId}?trip_id=${tripId}&page_size=20`);
+            
+            // Add favorites that aren't already in voted activities
+            favorites.recommendations.forEach(fav => {
+                if (!topRecommendations.find(rec => rec.id === fav.id)) {
+                    fav.sourceType = 'favorite';
+                    fav.sourceLabel = 'Favorite';
+                    allActivities.push(fav);
+                }
+            });
+        }
+        
+        if (allActivities.length > 0) {
+            // Show sidebar and adjust main content
+            document.getElementById('showcaseSidebar').style.display = 'block';
+            document.getElementById('dailyActivitiesColumn').className = 'col-lg-9';
+            
+            renderShowcaseActivities(allActivities);
+        } else {
+            // Hide sidebar if no activities
+            document.getElementById('showcaseSidebar').style.display = 'none';
+            document.getElementById('dailyActivitiesColumn').className = 'col-lg-12';
+        }
+        
+    } catch (error) {
+        console.error('Error loading activity showcase:', error);
+        // Hide sidebar on error
+        document.getElementById('showcaseSidebar').style.display = 'none';
+        document.getElementById('dailyActivitiesColumn').className = 'col-lg-12';
+    }
+}
+
+function renderShowcaseActivities(recommendations) {
+    const container = document.getElementById('showcaseActivities');
+    
+    if (recommendations.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-heart" style="font-size: 2rem;"></i>
+                <p class="small mb-0">No family favorites yet</p>
+                <p class="small">Search and vote for activities!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = recommendations.map(rec => `
+        <div class="showcase-activity-card" 
+             draggable="true"
+             data-recommendation-id="${rec.id}"
+             data-activity-name="${rec.name}"
+             data-activity-description="${rec.description || ''}"
+             data-activity-category="${rec.category}"
+             data-activity-cost="${rec.estimated_cost || 0}"
+             data-activity-location="${rec.location_name || ''}"
+             data-activity-address="${rec.address || ''}"
+             data-activity-image="${rec.primary_image_url || ''}"
+             ondblclick="showRecommendationDetailModal(${rec.id})">
+            
+            <div class="activity-card-header">
+                <div class="activity-thumbnail">
+                    <i class="bi bi-${getCategoryIcon(rec.category)}"></i>
+                </div>
+                <div class="activity-card-content">
+                    <h6 class="activity-title">${rec.name}</h6>
+                    <div class="activity-meta">
+                        <span class="activity-category">${rec.category}</span>
+                        <span class="activity-priority priority-${rec.priority || 'would_like'}">${rec.priority || 'would_like'}</span>
+                    </div>
+                </div>
+            </div>
+            
+            ${rec.description ? `
+                <p class="activity-description">${rec.description}</p>
+            ` : ''}
+            
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="activity-cost ${rec.estimated_cost > 0 ? '' : 'free'}">
+                    <i class="bi bi-currency-dollar me-1"></i>
+                    ${rec.estimated_cost > 0 ? `$${rec.estimated_cost}` : 'Free'}
+                </div>
+                <div class="activity-source">
+                    ${rec.sourceType === 'favorite' ? 
+                        '<i class="bi bi-heart-fill text-warm-primary" title="Family Favorite"></i>' : 
+                        '<i class="bi bi-hand-thumbs-up-fill text-warm-secondary" title="Family Liked"></i>'
+                    }
+                </div>
+            </div>
+        </div>
+    `).join('');
+    
+    // Add event listeners after HTML is inserted
+    setupShowcaseDragEvents();
+    setupPlanningAreaDragEvents();
+}
+
+function getVoteScoreColor(score) {
+    if (score >= 3) return 'success';
+    if (score >= 2) return 'info';
+    if (score >= 1) return 'warning';
+    return 'secondary';
+}
+
+function getSourceTypeColor(sourceType) {
+    return sourceType === 'favorite' ? 'danger' : 'success';
+}
+
+function mapCategoryToValidEnum(category) {
+    // Map various category names to the valid enum values
+    const categoryMapping = {
+        // Valid categories (pass through)
+        'sightseeing': 'sightseeing',
+        'food': 'food', 
+        'shopping': 'shopping',
+        'rest': 'rest',
+        'transportation': 'transportation',
+        
+        // Map common variations to valid categories
+        'museum': 'sightseeing',
+        'museums': 'sightseeing',
+        'attraction': 'sightseeing',
+        'attractions': 'sightseeing',
+        'landmark': 'sightseeing',
+        'landmarks': 'sightseeing',
+        'temple': 'sightseeing',
+        'temples': 'sightseeing',
+        'castle': 'sightseeing',
+        'park': 'sightseeing',
+        'parks': 'sightseeing',
+        
+        'restaurant': 'food',
+        'restaurants': 'food',
+        'dining': 'food',
+        'cafe': 'food',
+        'bar': 'food',
+        'market': 'food',
+        'street_food': 'food',
+        
+        'shop': 'shopping',
+        'shops': 'shopping',
+        'mall': 'shopping',
+        'store': 'shopping',
+        'retail': 'shopping',
+        
+        'hotel': 'rest',
+        'accommodation': 'rest',
+        'spa': 'rest',
+        'onsen': 'rest',
+        
+        'train': 'transportation',
+        'bus': 'transportation',
+        'subway': 'transportation',
+        'taxi': 'transportation',
+        'airport': 'transportation'
+    };
+    
+    const lowerCategory = (category || '').toLowerCase();
+    return categoryMapping[lowerCategory] || 'sightseeing'; // Default to sightseeing if unknown
+}
+
+function setupShowcaseDragEvents() {
+    console.log('Setting up modern showcase activity card drag events...');
+    const cards = document.querySelectorAll('.showcase-activity-card');
+    console.log('Found showcase activity cards:', cards.length);
+    
+    cards.forEach((card, index) => {
+        console.log(`Setting up drag for showcase card ${index}:`, card);
+        
+        card.addEventListener('dragstart', function(event) {
+            console.log('Drag start triggered on showcase card:', this);
+            this.classList.add('dragging');
+            handleShowcaseDragStart(event);
+        });
+        
+        card.addEventListener('dragend', function(event) {
+            console.log('Drag end triggered on showcase card:', this);
+            this.classList.remove('dragging');
+            handleShowcaseDragEnd(event);
+        });
+        
+        // Add beautiful hover effects
+        card.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('dragging')) {
+                this.style.transform = 'translateY(-2px)';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('dragging')) {
+                this.style.transform = '';
+            }
+        });
+    });
+}
+
+function setupPlanningAreaDragEvents() {
+    console.log('Setting up planning area drag events...');
+    const activityCards = document.querySelectorAll('.activity-card[draggable="true"]');
+    console.log('Found planning area activity cards:', activityCards.length);
+    
+    activityCards.forEach((card, index) => {
+        console.log(`Setting up drag for planning activity ${index}:`, card);
+        
+        // Remove existing event listeners to avoid duplicates
+        card.removeEventListener('dragstart', handleDragStart);
+        card.removeEventListener('dragend', handleDragEnd);
+        
+        // Add new event listeners
+        card.addEventListener('dragstart', function(event) {
+            console.log('Planning area drag start:', this);
+            this.classList.add('dragging');
+            handleDragStart(event);
+        });
+        
+        card.addEventListener('dragend', function(event) {
+            console.log('Planning area drag end:', this);
+            this.classList.remove('dragging');
+            handleDragEnd(event);
+        });
+        
+        // Add hover effects for planning area cards too
+        card.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('dragging')) {
+                this.style.transform = 'translateY(-2px)';
+            }
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('dragging')) {
+                this.style.transform = '';
+            }
+        });
+    });
+}
+
+function handleShowcaseDragStart(event) {
+    console.log('handleShowcaseDragStart called with event:', event);
+    
+    const card = event.target.closest('.showcase-activity-card');
+    console.log('Found showcase activity card element:', card);
+    
+    if (!card) {
+        console.error('No showcase activity card found!');
+        return;
+    }
+    
+    // Store recommendation data for drag operation
+    draggedActivity = {
+        type: 'recommendation',
+        recommendationId: card.getAttribute('data-recommendation-id'),
+        name: card.getAttribute('data-activity-name'),
+        description: card.getAttribute('data-activity-description'),
+        category: card.getAttribute('data-activity-category'),
+        estimated_cost: parseFloat(card.getAttribute('data-activity-cost')) || 0,
+        location_name: card.getAttribute('data-activity-location'),
+        address: card.getAttribute('data-activity-address'),
+        primary_image_url: card.getAttribute('data-activity-image')
+    };
+    
+    console.log('Stored draggedActivity:', draggedActivity);
+    
+    card.classList.add('dragging');
+    event.dataTransfer.effectAllowed = 'copy';
+    event.dataTransfer.setData('text/plain', 'recommendation'); // Add some data
+    
+    // Add visual feedback to all drop zones
+    const dropZones = document.querySelectorAll('.drop-zone');
+    console.log('Found drop zones:', dropZones.length);
+    
+    dropZones.forEach(zone => {
+        zone.style.border = '2px dashed #28a745';
+        zone.style.backgroundColor = '#f8fff9';
+        console.log('Updated drop zone styling:', zone);
+    });
+}
+
+function handleShowcaseDragEnd(event) {
+    event.target.closest('.showcase-activity-card').classList.remove('dragging');
+    
+    // Remove drag over effects from all drop zones
+    document.querySelectorAll('.drop-zone').forEach(zone => {
+        zone.classList.remove('drag-over');
+        zone.style.border = '2px dashed transparent';
+        zone.style.backgroundColor = '';
+    });
+}
+
+// Update the existing showEmptyState function to hide showcase
+function showEmptyState() {
+    document.getElementById('tripInfoBar').classList.add('d-none');
+    document.getElementById('showcaseSidebar').style.display = 'none';
+    document.getElementById('dailyActivitiesColumn').className = 'col-lg-12';
+    document.getElementById('dailyActivitiesContainer').innerHTML = `
+        <div class="text-center text-muted mt-5">
+            <i class="bi bi-calendar-x" style="font-size: 4rem;"></i>
+            <h4>Select a trip to view daily activities</h4>
+            <p>Choose a trip from the dropdown above to start planning your daily activities.</p>
+        </div>
+    `;
+}
+
+// Check for pending activity from discovery hub
+function checkPendingActivity() {
+    const pendingActivity = localStorage.getItem('pendingActivity');
+    if (pendingActivity && currentTripId) {
+        try {
+            const activity = JSON.parse(pendingActivity);
+            
+            // Pre-populate the add activity form
+            document.getElementById('activityName').value = activity.name;
+            document.getElementById('description').value = activity.description || '';
+            document.getElementById('category').value = activity.category;
+            document.getElementById('locationName').value = activity.location_name || '';
+            document.getElementById('address').value = activity.address || '';
+            document.getElementById('estimatedCost').value = activity.estimated_cost || '';
+            document.getElementById('notes').value = activity.notes || '';
+            
+            // Set default time slot and date
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('activityDate').value = today;
+            document.getElementById('timeSlot').value = 'morning';
+            document.getElementById('priority').value = 'would_like';
+            
+            // Show the modal
+            const modal = new bootstrap.Modal(document.getElementById('activityModal'));
+            modal.show();
+            
+            // Clear the pending activity
+            localStorage.removeItem('pendingActivity');
+            
+            showAlert('Activity loaded from discovery! Please select date and time.', 'info');
+            
+        } catch (error) {
+            console.error('Error loading pending activity:', error);
+            localStorage.removeItem('pendingActivity');
+        }
+    }
+}
+
+// Detail Modal Functions
+async function showActivityDetailModal(activityId) {
+    try {
+        console.log('Loading activity details for ID:', activityId);
+        
+        // Get the activity data from the card if available, or fetch from API
+        const activityCard = document.querySelector(`[data-activity-id="${activityId}"]`);
+        let activity;
+        
+        if (activityCard) {
+            // Get data from card attributes first for faster display
+            activity = {
+                id: activityId,
+                name: activityCard.getAttribute('data-activity-name'),
+                description: activityCard.getAttribute('data-activity-description'),
+                category: activityCard.getAttribute('data-activity-category'),
+                location_name: activityCard.getAttribute('data-activity-location'),
+                address: activityCard.getAttribute('data-activity-address'),
+                estimated_cost: parseFloat(activityCard.getAttribute('data-activity-cost')) || 0,
+                activity_date: activityCard.getAttribute('data-activity-date'),
+                time_slot: activityCard.getAttribute('data-activity-timeslot')
+            };
+        }
+        
+        // Also fetch full details from API
+        try {
+            const fullActivity = await apiRequest(`/api/activities/${activityId}`);
+            activity = { ...activity, ...fullActivity };
+        } catch (error) {
+            console.log('Could not fetch full activity details, using card data');
+        }
+        
+        showDetailModal(activity, 'activity');
+        
+    } catch (error) {
+        console.error('Error loading activity details:', error);
+        showAlert('Error loading activity details', 'danger');
+    }
+}
+
+async function showRecommendationDetailModal(recommendationId) {
+    try {
+        console.log('Loading recommendation details for ID:', recommendationId);
+        
+        const recommendation = await apiRequest(`/api/search/recommendations/${recommendationId}`);
+        showDetailModal(recommendation, 'recommendation');
+        
+    } catch (error) {
+        console.error('Error loading recommendation details:', error);
+        showAlert('Error loading recommendation details', 'danger');
+    }
+}
+
+function showDetailModal(item, type) {
+    const modal = document.getElementById('activityDetailModal');
+    const title = document.getElementById('activityDetailTitle');
+    const body = document.getElementById('activityDetailBody');
+    const editBtn = document.getElementById('editActivityFromDetailBtn');
+    
+    title.textContent = item.name;
+    
+    // Generate hero image section with fixed dual image issue
+    const heroImageHtml = item.primary_image_url ? 
+        `<div class="activity-hero-section">
+            <img src="${item.primary_image_url}" 
+                 class="activity-hero-image" 
+                 alt="${item.name}"
+                 onerror="this.style.display='none'; this.parentElement.querySelector('.activity-hero-fallback').style.display='flex';">
+            <div class="activity-hero-fallback" style="display: none;">
+                <i class="bi bi-${getCategoryIcon(item.category)}"></i>
+                <p>No image available</p>
+            </div>
+            <div class="activity-hero-overlay">
+                <h1 class="activity-hero-title">${item.name}</h1>
+                <p class="activity-hero-subtitle">${item.category} • ${type === 'activity' ? 'Scheduled Activity' : 'Recommendation'}</p>
+            </div>
+            <div class="activity-badges-overlay">
+                <div class="activity-badge">
+                    <i class="bi bi-${getCategoryIcon(item.category)}"></i> ${item.category}
+                </div>
+                ${type === 'activity' && item.priority ? 
+                    `<div class="activity-badge priority-${item.priority}">
+                        ${getPriorityIcon(item.priority)} ${item.priority.replace('_', ' ')}
+                     </div>` : ''
+                }
+            </div>
+         </div>` :
+        `<div class="activity-hero-section">
+            <div class="activity-hero-fallback">
+                <i class="bi bi-${getCategoryIcon(item.category)}"></i>
+                <p>No image available</p>
+            </div>
+            <div class="activity-hero-overlay">
+                <h1 class="activity-hero-title">${item.name}</h1>
+                <p class="activity-hero-subtitle">${item.category} • ${type === 'activity' ? 'Scheduled Activity' : 'Recommendation'}</p>
+            </div>
+            <div class="activity-badges-overlay">
+                <div class="activity-badge">
+                    <i class="bi bi-${getCategoryIcon(item.category)}"></i> ${item.category}
+                </div>
+                ${type === 'activity' && item.priority ? 
+                    `<div class="activity-badge priority-${item.priority}">
+                        ${getPriorityIcon(item.priority)} ${item.priority.replace('_', ' ')}
+                     </div>` : ''
+                }
+            </div>
+         </div>`;
+
+    // Generate quick info cards
+    const quickInfoHtml = `
+        <div class="activity-quick-info">
+            <div class="activity-info-card cost-card">
+                <i class="bi bi-currency-dollar"></i>
+                <h6>Cost</h6>
+                <p class="value ${item.estimated_cost > 0 ? '' : 'free'}">
+                    ${item.estimated_cost > 0 ? `$${item.estimated_cost}` : 'Free'}
+                </p>
+            </div>
+            ${item.estimated_duration_hours ? 
+                `<div class="activity-info-card time-card">
+                    <i class="bi bi-clock"></i>
+                    <h6>Duration</h6>
+                    <p class="value">${item.estimated_duration_hours}h</p>
+                 </div>` : 
+                `<div class="activity-info-card schedule-card">
+                    <i class="bi bi-calendar-event"></i>
+                    <h6>Scheduled</h6>
+                    <p class="value" style="font-size: 0.9rem;">
+                        ${type === 'activity' && item.activity_date ? 
+                            `${formatDate(item.activity_date)}<br><small>${item.time_slot}</small>` : 
+                            'Not scheduled'
+                        }
+                    </p>
+                 </div>`
+            }
+            ${item.external_rating ? 
+                `<div class="activity-info-card rating-card">
+                    <i class="bi bi-star-fill"></i>
+                    <h6>Rating</h6>
+                    <p class="value">${item.external_rating.toFixed(1)}/5</p>
+                 </div>` : ''
+            }
+            ${item.external_review_count ? 
+                `<div class="activity-info-card">
+                    <i class="bi bi-chat-quote" style="color: var(--warm-info);"></i>
+                    <h6>Reviews</h6>
+                    <p class="value">${item.external_review_count}</p>
+                 </div>` : ''
+            }
+        </div>
+    `;
+
+    // Generate description section
+    const descriptionHtml = item.description ? `
+        <div class="activity-description-section">
+            <h6><i class="bi bi-file-text"></i> Description</h6>
+            <p>${item.description}</p>
+        </div>
+    ` : '';
+
+    // Generate location section
+    const locationHtml = (item.location_name || item.address) ? `
+        <div class="activity-location-section">
+            <h6><i class="bi bi-geo-alt-fill"></i> Location</h6>
+            ${item.location_name ? `<p class="location-name">${item.location_name}</p>` : ''}
+            ${item.address ? `<p class="location-address">${item.address}</p>` : ''}
+        </div>
+    ` : '';
+
+    // Generate family interaction zone
+    const familyInteractionHtml = `
+        <div class="family-interaction-zone">
+            <h6><i class="bi bi-people-fill"></i> Family Feedback</h6>
+            ${type === 'recommendation' && item.vote_summary ? `
+                <div class="family-votes">
+                    <div class="vote-item likes">
+                        <i class="bi bi-hand-thumbs-up-fill"></i>
+                        <span>${item.vote_summary.positive} likes</span>
+                    </div>
+                    <div class="vote-item dislikes">
+                        <i class="bi bi-hand-thumbs-down-fill"></i>
+                        <span>${item.vote_summary.negative} dislikes</span>
+                    </div>
+                </div>
+            ` : ''}
+            <div class="family-wishes">
+                <div class="wish-item">
+                    <div class="wish-avatar">M</div>
+                    <span><strong>Mom:</strong> "This looks perfect for our family adventure!"</span>
+                </div>
+                <div class="wish-item">
+                    <div class="wish-avatar">D</div>
+                    <span><strong>Dad:</strong> "Great for taking memorable photos."</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Combine all sections
+    body.innerHTML = `
+        ${heroImageHtml}
+        <div style="padding: 1.5rem 2rem;">
+            ${quickInfoHtml}
+            ${descriptionHtml}
+            ${locationHtml}
+            ${familyInteractionHtml}
+        </div>
+    `;
+    
+    // Set up edit and delete buttons
+    const deleteBtn = document.getElementById('deleteActivityFromDetailBtn');
+    
+    if (type === 'activity') {
+        editBtn.textContent = 'Edit Activity';
+        editBtn.onclick = () => {
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            modalInstance.hide();
+            editActivity(item.id);
+        };
+        
+        // Show delete button for activities and set up click handler
+        deleteBtn.style.display = 'block';
+        deleteBtn.onclick = async () => {
+            if (confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
+                try {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    modalInstance.hide();
+                    
+                    await deleteActivity(item.id);
+                    showAlert(`Activity "${item.name}" deleted successfully!`, 'success');
+                } catch (error) {
+                    console.error('Error deleting activity:', error);
+                    showAlert('Error deleting activity. Please try again.', 'danger');
+                }
+            }
+        };
+    } else {
+        editBtn.textContent = 'Add to Schedule';
+        editBtn.onclick = () => {
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            modalInstance.hide();
+            // Pre-populate the add activity form
+            document.getElementById('activityName').value = item.name;
+            document.getElementById('description').value = item.description || '';
+            document.getElementById('category').value = mapCategoryToValidEnum(item.category);
+            document.getElementById('locationName').value = item.location_name || '';
+            document.getElementById('address').value = item.address || '';
+            document.getElementById('estimatedCost').value = item.estimated_cost || '';
+            document.getElementById('priority').value = 'would_like';
+            
+            // Show the add activity modal
+            const addModal = new bootstrap.Modal(document.getElementById('activityModal'));
+            addModal.show();
+        };
+        
+        // Hide delete button for recommendations
+        deleteBtn.style.display = 'none';
+    }
+    
+    // Show the modal
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+}
+
+// ===== DRAG-TO-DELETE FUNCTIONALITY =====
+function setupDeleteZoneEvents() {
+    const deleteZone = document.getElementById('deleteZone');
+    
+    deleteZone.addEventListener('dragover', function(event) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    });
+    
+    deleteZone.addEventListener('dragenter', function(event) {
+        event.preventDefault();
+        this.classList.add('drag-over');
+    });
+    
+    deleteZone.addEventListener('dragleave', function(event) {
+        if (!this.contains(event.relatedTarget)) {
+            this.classList.remove('drag-over');
+        }
+    });
+    
+    deleteZone.addEventListener('drop', handleDrop);
+}
+
+async function handleDeleteZoneDrop() {
+    if (!draggedActivity || draggedActivity.type !== 'existing') {
+        console.log('Cannot delete: not an existing activity');
+        return;
+    }
+    
+    try {
+        const activityName = draggedActivity.name || 'this activity';
+        console.log('Deleting activity via drag-to-delete:', draggedActivity.id);
+        
+        showLoading(true);
+        
+        await apiRequest(`/api/activities/${draggedActivity.id}`, {
+            method: 'DELETE'
+        });
+        
+        showAlert(`🗑️ "${activityName}" deleted successfully!`, 'success', 3000);
+        
+        // Reload the trip data to refresh the display
+        await loadTripData(currentTripId);
+        
+    } catch (error) {
+        console.error('Error deleting activity:', error);
+        showAlert('Error deleting activity. Please try again.', 'danger');
+    } finally {
+        showLoading(false);
+        draggedActivity = null;
+        
+        // Hide delete zone
+        const deleteZone = document.getElementById('deleteZone');
+        deleteZone.classList.add('d-none');
+        deleteZone.classList.remove('drag-over');
+    }
+}
+
+// ===== DROPDOWN POSITIONING FIX =====
+// Fix dropdown positioning when using fixed positioning
+function setupDropdownPositioning() {
+    // Handle Bootstrap dropdown show events
+    document.addEventListener('show.bs.dropdown', function (event) {
+        const dropdownToggle = event.target;
+        const dropdownMenu = dropdownToggle.nextElementSibling;
+        
+        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+            // Calculate position relative to the toggle button
+            const rect = dropdownToggle.getBoundingClientRect();
+            const menuHeight = 120; // Approximate height of 3 items
+            const viewportHeight = window.innerHeight;
+            
+            // Position dropdown to the right and below the button by default
+            let top = rect.bottom + 4;
+            let left = rect.right - 150; // Align right edge of menu with button
+            
+            // If dropdown would go below viewport, position it above the button
+            if (top + menuHeight > viewportHeight - 20) {
+                top = rect.top - menuHeight - 4;
+            }
+            
+            // Ensure dropdown doesn't go off left edge of screen
+            if (left < 10) {
+                left = 10;
+            }
+            
+            // Apply positioning
+            dropdownMenu.style.position = 'fixed';
+            dropdownMenu.style.top = `${top}px`;
+            dropdownMenu.style.left = `${left}px`;
+            dropdownMenu.style.right = 'auto';
+            dropdownMenu.style.bottom = 'auto';
+            dropdownMenu.style.transform = 'none';
+            dropdownMenu.style.zIndex = '9999';
+            
+            console.log(`Positioned dropdown at top: ${top}, left: ${left}`);
+        }
+    });
+    
+    // Clean up positioning when dropdown is hidden
+    document.addEventListener('hide.bs.dropdown', function (event) {
+        const dropdownToggle = event.target;
+        const dropdownMenu = dropdownToggle.nextElementSibling;
+        
+        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+            // Reset positioning
+            dropdownMenu.style.position = '';
+            dropdownMenu.style.top = '';
+            dropdownMenu.style.left = '';
+            dropdownMenu.style.right = '';
+            dropdownMenu.style.bottom = '';
+            dropdownMenu.style.transform = '';
+        }
+    });
+}
+
+// Initialize dropdown positioning on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setupDropdownPositioning();
+});
+
+// ===== ENHANCED SIDEBAR FUNCTIONALITY =====
+
+// Category management
+let categoryStates = {
+    favorites: false,
+    liked: false,
+    recent: false,
+    all: true  // Default to expanded
+};
+
+function toggleCategory(categoryName) {
+    const section = document.querySelector(`[data-category="${categoryName}"]`);
+    const isCollapsed = section.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+        section.classList.remove('collapsed');
+        categoryStates[categoryName] = true;
+    } else {
+        section.classList.add('collapsed');
+        categoryStates[categoryName] = false;
+    }
+    
+    // Store state in localStorage
+    localStorage.setItem('sidebarCategoryStates', JSON.stringify(categoryStates));
+}
+
+// Search functionality
+function initializeSidebarSearch() {
+    const searchInput = document.getElementById('sidebarSearch');
+    const clearButton = document.getElementById('clearSearch');
+    
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        filterActivities(query);
+        
+        // Show/hide clear button
+        clearButton.style.display = query ? 'block' : 'none';
+    });
+    
+    clearButton.addEventListener('click', function() {
+        searchInput.value = '';
+        filterActivities('');
+        this.style.display = 'none';
+        searchInput.focus();
+    });
+}
+
+function filterActivities(query) {
+    const allCards = document.querySelectorAll('.category-activities .showcase-activity-card');
+    let visibleCounts = { favorites: 0, liked: 0, recent: 0, all: 0 };
+    
+    allCards.forEach(card => {
+        const title = card.querySelector('.activity-title')?.textContent?.toLowerCase() || '';
+        const category = card.querySelector('.activity-category')?.textContent?.toLowerCase() || '';
+        const isVisible = !query || title.includes(query) || category.includes(query);
+        
+        card.style.display = isVisible ? 'block' : 'none';
+        
+        // Count visible activities per category
+        if (isVisible) {
+            const categorySection = card.closest('.category-section');
+            if (categorySection) {
+                const categoryName = categorySection.dataset.category;
+                if (visibleCounts.hasOwnProperty(categoryName)) {
+                    visibleCounts[categoryName]++;
+                }
+            }
+        }
+    });
+    
+    // Update category counts
+    Object.keys(visibleCounts).forEach(category => {
+        const countElement = document.getElementById(`${category}Count`);
+        if (countElement) {
+            countElement.textContent = visibleCounts[category];
+        }
+    });
+}
+
+// Category organization
+function organizeSidebarActivities() {
+    const allActivities = Array.from(document.querySelectorAll('#showcaseActivities .showcase-activity-card'));
+    const favoritesContainer = document.getElementById('favoritesActivities');
+    const likedContainer = document.getElementById('likedActivities');
+    const recentContainer = document.getElementById('recentActivities');
+    
+    // Clear containers but preserve empty states
+    [favoritesContainer, likedContainer, recentContainer].forEach((container, index) => {
+        if (container) {
+            const emptyStates = [
+                `<div class="sidebar-empty-state">
+                    <i class="bi bi-heart"></i>
+                    <h6>No Favorites Yet</h6>
+                    <p>Mark activities as favorites to see them here</p>
+                </div>`,
+                `<div class="sidebar-empty-state">
+                    <i class="bi bi-hand-thumbs-up"></i>
+                    <h6>No Liked Activities</h6>
+                    <p>Vote up activities to see them here</p>
+                </div>`,
+                `<div class="sidebar-empty-state">
+                    <i class="bi bi-clock"></i>
+                    <h6>No Recent Activities</h6>
+                    <p>Recently viewed activities will appear here</p>
+                </div>`
+            ];
+            container.innerHTML = emptyStates[index];
+        }
+    });
+    
+    // Track if we've added any activities to each container
+    let addedToFavorites = false;
+    let addedToLiked = false;
+    let addedToRecent = false;
+    
+    // Simulate organization (in real implementation, this would use actual user data)
+    allActivities.forEach((card, index) => {
+        const clone = card.cloneNode(true);
+        
+        // Simulate favorites (every 3rd item)
+        if (index % 3 === 0 && favoritesContainer) {
+            if (!addedToFavorites) {
+                favoritesContainer.innerHTML = ''; // Clear empty state
+                addedToFavorites = true;
+            }
+            favoritesContainer.appendChild(clone.cloneNode(true));
+        }
+        
+        // Simulate liked items (items with high votes)
+        if (index % 2 === 0 && likedContainer) {
+            if (!addedToLiked) {
+                likedContainer.innerHTML = ''; // Clear empty state
+                addedToLiked = true;
+            }
+            likedContainer.appendChild(clone.cloneNode(true));
+        }
+        
+        // Recent items (first 5)
+        if (index < 5 && recentContainer) {
+            if (!addedToRecent) {
+                recentContainer.innerHTML = ''; // Clear empty state
+                addedToRecent = true;
+            }
+            recentContainer.appendChild(clone.cloneNode(true));
+        }
+    });
+    
+    // Re-setup drag events for cloned cards
+    setupShowcaseDragEvents();
+    
+    // Update counts
+    updateCategoryCounts();
+}
+
+function updateCategoryCounts() {
+    const categories = ['favorites', 'liked', 'recent', 'all'];
+    
+    categories.forEach(category => {
+        const container = document.getElementById(`${category}Activities`);
+        const countElement = document.getElementById(`${category}Count`);
+        
+        if (container && countElement) {
+            const count = container.querySelectorAll('.showcase-activity-card').length;
+            countElement.textContent = count;
+        }
+    });
+}
+
+// Refresh sidebar
+function refreshSidebar() {
+    console.log('Refreshing sidebar...');
+    
+    // Re-load showcase activities
+    loadShowcaseActivities();
+    
+    // Reset search
+    const searchInput = document.getElementById('sidebarSearch');
+    const clearButton = document.getElementById('clearSearch');
+    if (searchInput) {
+        searchInput.value = '';
+        clearButton.style.display = 'none';
+    }
+    
+    // Re-organize activities
+    setTimeout(() => {
+        organizeSidebarActivities();
+    }, 500);
+}
+
+// Initialize sidebar state
+function initializeSidebarState() {
+    // Load saved category states
+    const savedStates = localStorage.getItem('sidebarCategoryStates');
+    if (savedStates) {
+        categoryStates = { ...categoryStates, ...JSON.parse(savedStates) };
+    }
+    
+    // Apply saved states
+    Object.keys(categoryStates).forEach(category => {
+        const section = document.querySelector(`[data-category="${category}"]`);
+        if (section) {
+            if (!categoryStates[category]) {
+                section.classList.add('collapsed');
+            } else {
+                section.classList.remove('collapsed');
+            }
+        }
+    });
+}
+
+// Enhanced showcase loading with organization
+const originalLoadShowcaseActivities = window.loadShowcaseActivities;
+window.loadShowcaseActivities = function() {
+    if (originalLoadShowcaseActivities) {
+        originalLoadShowcaseActivities();
+        
+        // Organize activities after loading
+        setTimeout(() => {
+            organizeSidebarActivities();
+        }, 100);
+    }
+};
+
+// ===== ENHANCED CALENDAR VIEW FUNCTIONALITY =====
+
+// Quick add activity function
+async function addQuickActivity(date, timeSlot) {
+    try {
+        // Pre-fill the activity modal with date and time slot
+        document.getElementById('activityDate').value = date;
+        document.getElementById('activityTimeSlot').value = timeSlot;
+        
+        // Show the activity modal
+        const modal = new bootstrap.Modal(document.getElementById('activityModal'));
+        modal.show();
+        
+        // Focus on the name field
+        setTimeout(() => {
+            document.getElementById('activityName').focus();
+        }, 300);
+        
+    } catch (error) {
+        console.error('Error in quick add activity:', error);
+        showAlert('Error opening activity form', 'danger');
+    }
+}
+
+// Optimize time slot function
+async function optimizeTimeSlot(date, timeSlot) {
+    try {
+        showLoading(true);
+        
+        const response = await fetch(`/api/trips/${currentTripId}/optimize-timeslot`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                date: date,
+                time_slot: timeSlot
+            })
+        });
+        
+        if (response.ok) {
+            showAlert('Time slot optimized successfully!', 'success');
+            await loadTripData(currentTripId);
+        } else {
+            throw new Error('Failed to optimize time slot');
+        }
+        
+    } catch (error) {
+        console.error('Error optimizing time slot:', error);
+        showAlert('Error optimizing time slot', 'danger');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Move activity up in time slot
+async function moveActivityUp(activityId) {
+    try {
+        const response = await fetch(`/api/activities/${activityId}/move-up`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            await loadTripData(currentTripId);
+        } else {
+            throw new Error('Failed to move activity up');
+        }
+        
+    } catch (error) {
+        console.error('Error moving activity up:', error);
+        showAlert('Error moving activity', 'danger');
+    }
+}
+
+// Move activity down in time slot
+async function moveActivityDown(activityId) {
+    try {
+        const response = await fetch(`/api/activities/${activityId}/move-down`, {
+            method: 'POST'
+        });
+        
+        if (response.ok) {
+            await loadTripData(currentTripId);
+        } else {
+            throw new Error('Failed to move activity down');
+        }
+        
+    } catch (error) {
+        console.error('Error moving activity down:', error);
+        showAlert('Error moving activity', 'danger');
+    }
+}
+
+// Enhanced drag and drop for calendar
+function enhanceCalendarDragDrop() {
+    const dropZones = document.querySelectorAll('.enhanced-drop-zone');
+    const activityCards = document.querySelectorAll('.enhanced-activity-card');
+    
+    // Enhanced drop zone events
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+        });
+        
+        zone.addEventListener('dragleave', function(e) {
+            if (!this.contains(e.relatedTarget)) {
+                this.classList.remove('drag-over');
+            }
+        });
+        
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            // Handle the drop
+            handleEnhancedDrop(e, this);
+        });
+    });
+    
+    // Enhanced activity card drag events
+    activityCards.forEach(card => {
+        card.addEventListener('dragstart', function(e) {
+            this.classList.add('dragging');
+            
+            // Store activity data
+            e.dataTransfer.setData('text/plain', JSON.stringify({
+                activityId: this.dataset.activityId,
+                sourceDate: this.dataset.activityDate,
+                sourceTimeSlot: this.dataset.activityTimeslot,
+                activityName: this.dataset.activityName
+            }));
+        });
+        
+        card.addEventListener('dragend', function(e) {
+            this.classList.remove('dragging');
+        });
+    });
+}
+
+// Enhanced drop handler
+async function handleEnhancedDrop(event, dropZone) {
+    try {
+        const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+        const targetDate = dropZone.dataset.date;
+        const targetTimeSlot = dropZone.dataset.timeslot;
+        
+        // Check if it's the same location
+        if (data.sourceDate === targetDate && data.sourceTimeSlot === targetTimeSlot) {
+            return;
+        }
+        
+        // Update activity
+        const response = await fetch(`/api/activities/${data.activityId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                activity_date: targetDate,
+                time_slot: targetTimeSlot
+            })
+        });
+        
+        if (response.ok) {
+            showAlert(`${data.activityName} moved to ${targetTimeSlot} on ${formatDate(targetDate)}`, 'success');
+            await loadTripData(currentTripId);
+        } else {
+            throw new Error('Failed to move activity');
+        }
+        
+    } catch (error) {
+        console.error('Error in enhanced drop:', error);
+        showAlert('Error moving activity', 'danger');
+    }
+}
+
+// Initialize enhanced calendar on DOM content loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSidebarState();
+    initializeSidebarSearch();
+    
+    // Initialize after a short delay to ensure showcase activities are loaded
+    setTimeout(() => {
+        organizeSidebarActivities();
+        enhanceCalendarDragDrop();
+    }, 1000);
+});
+
+// Update loadTripData to check for pending activities
+// (Add this to the existing loadTripData function after loading activities)
+
+// ================================
+// FAMILY MEMBER MODAL FUNCTIONS
+// ================================
+
+/**
+ * Save new family member
+ */
+async function saveFamilyMember() {
+    const form = document.getElementById('familyMemberForm');
+    const formData = new FormData(form);
+    
+    // Validate required fields
+    const name = document.getElementById('memberName').value.trim();
+    const role = document.getElementById('memberRole').value;
+    
+    if (!name || !role) {
+        showAlert('Please fill in all required fields', 'warning');
+        return;
+    }
+    
+    if (!currentTripId) {
+        showAlert('No trip selected', 'warning');
+        return;
+    }
+    
+    try {
+        // Prepare wishlist as JSON array
+        const wishlistText = document.getElementById('memberWishlist').value.trim();
+        let wishlistItems = [];
+        
+        if (wishlistText) {
+            wishlistItems = wishlistText.split('\n')
+                .map(item => item.trim())
+                .filter(item => item)
+                .map(item => ({
+                    name: item,
+                    priority: 'would_like'
+                }));
+        }
+        
+        const memberData = {
+            name: name,
+            role: role,
+            age: document.getElementById('memberAge').value ? parseInt(document.getElementById('memberAge').value) : null,
+            trip_id: currentTripId,
+            interests: document.getElementById('memberInterests').value.trim() || null,
+            wishlist_items: wishlistItems.length > 0 ? JSON.stringify(wishlistItems) : null,
+            dietary_restrictions: document.getElementById('memberDietary').value.trim() || null,
+            mobility_needs: document.getElementById('memberMobility').value.trim() || null,
+            notes: document.getElementById('memberNotes').value.trim() || null
+        };
+        
+        const response = await apiRequest('/api/family-members/', {
+            method: 'POST',
+            body: JSON.stringify(memberData)
+        });
+        
+        if (response) {
+            showAlert(`${name} added to the family!`, 'success');
+            
+            // Close modal and reset form
+            const modal = bootstrap.Modal.getInstance(document.getElementById('familyMemberModal'));
+            modal.hide();
+            form.reset();
+            
+            // Reload family members
+            loadFamilyMembers(currentTripId);
+        }
+        
+    } catch (error) {
+        console.error('Error saving family member:', error);
+        showAlert('Failed to add family member: ' + error.message, 'danger');
+    }
+}
+</script>
+{% endblock %}

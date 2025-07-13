@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=sqlite:///./data/trip_planner.db
+      # 在这里添加你的API密钥
+      # - OPENWEATHER_API_KEY=your_key_here
+      # - GOOGLE_PLACES_API_KEY=your_key_here
+    volumes:
+      # 持久化数据库文件
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

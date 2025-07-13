@@ -1,0 +1,65 @@
+# 部署时不需要的开发文件
+
+# 虚拟环境
+venv_linux/
+venv_windows/
+venv/
+.venv/
+
+# 开发数据库
+*.db
+*.sqlite3
+trip_planner.db
+
+# 测试文件
+tests/
+test_*.py
+*_test.py
+
+# 开发工具配置
+.vscode/
+.idea/
+.claude/
+
+# 文档和说明文件
+README.md
+CLAUDE.md
+API_DOCUMENTATION.md
+DEVELOPMENT_GUIDE.md
+CHANGELOG.md
+idea.md
+
+# Git相关
+.git/
+.gitignore
+
+# Python开发文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+.mypy_cache/
+
+# 日志文件
+*.log
+logs/
+
+# 临时文件
+*.tmp
+*.temp
+temp/
+tmp/
+
+# 环境变量文件（生产环境单独配置）
+.env
+.env.*
+
+# OS文件
+.DS_Store
+Thumbs.db
+
+# 开发脚本
+test_api.py
+scripts/cleanup_old_recommendations.py

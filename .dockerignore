@@ -6,10 +6,9 @@ venv_windows/
 venv/
 .venv/
 
-# 开发数据库
-*.db
+# 开发数据库 (excluding production database)
 *.sqlite3
-trip_planner.db
+# Note: trip_planner.db is needed for production deployment
 
 # 测试文件
 tests/

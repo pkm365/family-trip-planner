@@ -30,6 +30,7 @@ COPY run.py alembic.ini ./
 RUN mkdir -p /app/data
 
 # 复制现有数据库到容器中（包含翻译数据）
+# If database doesn't exist, it will be created automatically on startup
 COPY trip_planner.db /app/data/trip_planner.db
 
 # 暴露端口

@@ -1256,6 +1256,18 @@ footer {
     padding: 0 1rem 1rem;
 }
 
+/* Fix for favorites results container - ensure it can show all content */
+#favoritesResults {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Ensure tab panes don't restrict content height */
+.tab-pane {
+    max-height: none !important;
+    overflow: visible !important;
+}
+
 .category-section.collapsed .category-content {
     max-height: 0;
     padding: 0 1rem 0;

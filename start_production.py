@@ -25,23 +25,50 @@ def import_database_if_needed():
     # Create data directory if it doesn't exist
     db_path.parent.mkdir(exist_ok=True)
     
-    # If database doesn't exist but SQL export does, import it
-    if not db_path.exists() and sql_export_path.exists():
-        print(f"Database not found. Importing from {sql_export_path}...")
+    # Check if database needs to be imported
+    should_import = False
+    
+    if not db_path.exists():
+        print("Database not found.")
+        should_import = True
+    else:
+        # Check if database is empty (size < 100KB means likely empty/minimal)
+        db_size = db_path.stat().st_size
+        print(f"Database found at {db_path}, size: {db_size} bytes")
+        if db_size < 100000:  # Less than 100KB, probably empty
+            print("Database appears empty, will re-import.")
+            should_import = True
+    
+    # Import database if needed and SQL export exists
+    if should_import and sql_export_path.exists():
+        print(f"Importing database from {sql_export_path}...")
         try:
+            # Remove existing database if it exists
+            if db_path.exists():
+                db_path.unlink()
+                
             conn = sqlite3.connect(str(db_path))
             with open(sql_export_path, 'r', encoding='utf-8') as f:
                 sql_content = f.read()
             conn.executescript(sql_content)
             conn.close()
             print("Database imported successfully!")
+            
+            # Verify import worked
+            conn = sqlite3.connect(str(db_path))
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM trips")
+            trip_count = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM activity_recommendations") 
+            activity_count = cursor.fetchone()[0]
+            conn.close()
+            print(f"Verified: {trip_count} trips and {activity_count} activities imported")
+            
         except Exception as e:
             print(f"Error importing database: {e}")
             # Continue anyway - the app will create tables automatically
-    elif db_path.exists():
-        print(f"Database found at {db_path}")
-    else:
-        print("No existing database or export found. Will create new database.")
+    elif not sql_export_path.exists():
+        print("No SQL export file found. Will create new database.")
 
 
 def main():

@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     )
 
     secret_key: str = Field(
-        default="production-secret-key-zeabur-2024",
+        default="family-trip-secret-2024",
         env="SECRET_KEY",
         description="Secret key for session management",
     )

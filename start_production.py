@@ -61,7 +61,8 @@ def main():
     os.environ.setdefault("DEBUG", "False")
     
     # Get port from environment or default to 8000
-    port = int(os.environ.get("PORT", 8000))
+    # Try multiple port environment variables that different platforms use
+    port = int(os.environ.get("PORT", os.environ.get("SERVER_PORT", 8000)))
     
     print(f"Starting production server on port {port}...")
     

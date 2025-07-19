@@ -57,8 +57,9 @@ def main():
     # Import database if needed (for production deployment)
     import_database_if_needed()
     
-    # Set production environment
-    os.environ.setdefault("DEBUG", "False")
+    # Force production environment
+    os.environ["DEBUG"] = "False"
+    os.environ["PYTHONUNBUFFERED"] = "1"
     
     # Get port from environment or default to 8000
     # Try multiple port environment variables that different platforms use
@@ -75,6 +76,7 @@ def main():
         log_level="info",
         access_log=True,
         workers=1,  # Single worker for SQLite compatibility
+        loop="asyncio",  # Explicit event loop
     )
 
 
